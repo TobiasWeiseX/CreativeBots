@@ -1,0 +1,14 @@
+
+elasticsearch
+elasticsearch-dsl
+langchain
+tiktoken
+
+pydantic
+Werkzeug
+flask
+Flask-Cors
+Flask-SocketIO
+flask-openapi3
+
+minio

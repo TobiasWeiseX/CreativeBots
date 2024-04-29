@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+    <title>Ollama Chatbot</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="w3.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+</head>
+<body>
+<table id="log" class="w3-table-all" style="width: 100%;">
+    <tr>
+        <th></th>
+        <th>Message</th>
+    </tr>
+</table>
+<textarea style="width: 100%; height: 50px;" id="user_input"></textarea>
+<button id="submit_btn">Submit</button>
+
+<script type="text/javascript" charset="utf-8">
+window.onload = ()=>{
+    let tA = document.getElementById("user_input");
+    let log = document.getElementById("log");
+    let btn = document.getElementById("submit_btn");
+
+    function log_msg(nick, msg){
+        console.log(nick + ": " + msg);
+        log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
+    }
+
+    log_msg("Bot", "Ask a question!");
+
+    const socket = io();
+
+    let room = null;
+    socket.on('backend response', function(data) {
+        console.log(data);
+        if(data.room) room = data.room;
+    });
+
+    let answer_count = 0;
+    let acc_text = "";
+    let first_token = true;
+
+    socket.on('backend token', function(obj) {
+        console.log(obj);
+        if(first_token){
+            let id = answer_count;
+            log.innerHTML += "<tr><td><b>Bot</b>:</td><td id='" + id + "'></td></tr>";
+        }
+
+        if(!obj.done){
+            acc_text += "" + obj.data;
+            first_token = false;
+            document.getElementById(answer_count).innerHTML += obj.data;
+        }
+        else{
+            //log_msg("Bot", acc_text);
+            acc_text = "";
+            first_token = true;
+            answer_count += 1;
+        }
+    });
+
+    btn.onclick = evt=>{
+        let s = tA.value;
+        if(s.trim() != '' && room){
+            tA.value = "";
+            log_msg('User', s);
+            socket.emit('client message', {data: s, room: room});
+        }
+    };
+
+};
+</script>
+</body>
+</html>
