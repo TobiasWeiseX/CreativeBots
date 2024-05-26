@@ -2,6 +2,7 @@
 elasticsearch
 elasticsearch-dsl
 langchain
+langchain-community
 tiktoken
 
 pydantic
