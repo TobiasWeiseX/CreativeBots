@@ -3,75 +3,117 @@
 <head>
     <title>Ollama Chatbot</title>
     <meta charset="utf-8">
+    <script src="viz.js"></script>
+    <script src="viz_widget.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="w3.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 </head>
 <body>
-<table id="log" class="w3-table-all" style="width: 100%;">
-    <tr>
-        <th></th>
-        <th>Message</th>
-    </tr>
-</table>
-<textarea style="width: 100%; height: 50px;" id="user_input"></textarea>
-<button id="submit_btn">Submit</button>
+    <div class="w3-container"> 
 
-<script type="text/javascript" charset="utf-8">
-window.onload = ()=>{
-    let tA = document.getElementById("user_input");
-    let log = document.getElementById("log");
-    let btn = document.getElementById("submit_btn");
 
-    function log_msg(nick, msg){
-        console.log(nick + ": " + msg);
-        log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
-    }
 
-    log_msg("Bot", "Ask a question!");
+        <div class="w3-container w3-teal">
+            <h1>Ollama Chatbot</h1>
+        </div> 
+        <br>
 
-    const socket = io();
+        <details>
+            <summary class="w3-button w3-round w3-teal">Settings...</summary>
 
-    let room = null;
-    socket.on('backend response', function(data) {
-        console.log(data);
-        if(data.room) room = data.room;
-    });
+            <div class="w3-panel w3-pale-green">
+                <h2>System prompt:</h2>
+                <textarea class="w3-input w3-border" type="text" style="width: 98%; height: 50px;" id="system_prompt" >Write the answer as JSON only.</textarea>
+            </div>
 
-    let answer_count = 0;
-    let acc_text = "";
-    let first_token = true;
+        </details>
+        
+        <br>
 
-    socket.on('backend token', function(obj) {
-        console.log(obj);
-        if(first_token){
-            let id = answer_count;
-            log.innerHTML += "<tr><td><b>Bot</b>:</td><td id='" + id + "'></td></tr>";
+        <div id="scroll_div" class="w3-container" style="overflow:scroll; height: 400px;"> 
+            <table id="log" class="w3-table-all" style="width: 100%;"></table>
+        </div>
+
+        <textarea class="w3-input w3-border" style="height: 50px;" id="user_input"></textarea>
+        <button class="w3-button w3-teal" id="submit_btn">Send   ❯</button>
+
+        <br>
+        <div class="w3-container w3-teal">
+            <p>tobiasweise.dev</p>
+        </div> 
+
+    </div>
+
+    <script type="text/javascript" charset="utf-8">
+    window.onload = ()=>{
+        let tA = document.getElementById("user_input");
+        let log = document.getElementById("log");
+        let btn = document.getElementById("submit_btn");
+
+        function log_msg(nick, msg){
+            console.log(nick + ": " + msg);
+            log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
         }
 
-        if(!obj.done){
-            acc_text += "" + obj.data;
-            first_token = false;
-            document.getElementById(answer_count).innerHTML += obj.data;
-        }
-        else{
-            //log_msg("Bot", acc_text);
-            acc_text = "";
-            first_token = true;
-            answer_count += 1;
-        }
-    });
 
-    btn.onclick = evt=>{
-        let s = tA.value;
-        if(s.trim() != '' && room){
-            tA.value = "";
-            log_msg('User', s);
-            socket.emit('client message', {data: s, room: room});
+        function scroll_down(){
+            let div = document.getElementById("scroll_div");
+            div.scrollTop = div.scrollHeight;
         }
+
+        log_msg("Bot", "Ask a question!");
+
+        const socket = io();
+
+        let room = null;
+        socket.on('backend response', function(data) {
+            console.log(data);
+            if(data.room) room = data.room;
+        });
+
+        let answer_count = 0;
+        let acc_text = "";
+        let first_token = true;
+
+        socket.on('backend token', function(obj) {
+            console.log(obj);
+            if(first_token){
+                let id = answer_count;
+                log.innerHTML += "<tr><td><b>Bot</b>:</td><td id='" + id + "'></td></tr>";
+            }
+
+            if(!obj.done){
+                acc_text += "" + obj.data;
+                first_token = false;
+                document.getElementById(answer_count).innerHTML += obj.data;
+
+                scroll_down();
+            }
+            else{
+                //log_msg("Bot", acc_text);
+                acc_text = "";
+                first_token = true;
+                answer_count += 1;
+
+                scroll_down();
+            }
+        });
+
+        btn.onclick = evt=>{
+            let s = tA.value;
+            if(s.trim() != '' && room){
+                tA.value = "";
+                log_msg('User', s);
+
+                let tA2 = document.getElementById("system_prompt");
+                socket.emit('client message', {data: tA2.value + " " + s, room: room});
+            }
+            scroll_down();
+        };
+
     };
-
-};
-</script>
+    </script>
 </body>
 </html>

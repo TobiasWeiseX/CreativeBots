@@ -79,18 +79,6 @@ def sockcon(data):
     socket.emit('backend response', {'msg': f'Connected to room {room} !', "room": room}) # looks like iOS needs an answer
 
 
-class StreamingCallback(BaseCallbackHandler):
-
-    def __init__(self, key: str, sid: str):
-        pass
-
-    def on_llm_new_token(self, token: str, **kwargs):
-        pass
-
-    def on_llm_end(self, response, **kwargs):
-        pass
-
-
 @socket.on('client message')
 def handle_message(message):
 
@@ -99,12 +87,19 @@ def handle_message(message):
 
     llm = Ollama(
         model="llama3",
-        #callback_manager=CallbackManager([StreamingCallback(stream_key, room)]),
         base_url="http://ollama:11434"
     )
 
-
-    system_prompt = "Answer in the language of the question. Give a short answer. Answer all questions without reservations or advice."
+    #system_prompt = "Answer in the language of the question. Give a short answer. Answer all questions without reservations or advice."
+    #system_prompt = "Answer in the language of the question. Give a short answer."
+    #system_prompt = "Always answer in English and give a short answer."
+    #system_prompt = "Always answer in English and give a short answer. If the answer is a list give it only as a JSON array."
+    #system_prompt = "Write the answer as Prolog assertions."
+    #system_prompt = "Write the answer in Japanese."
+    #system_prompt = "Write the answer in Japanese."
+    system_prompt = ""
+    #Write the answer as JSON only.
+    #If the answer is a geographic position return a JSON-object with the longitude and latitude as attributes.
 
 
     query = system_prompt + " " + message["data"]
@@ -143,18 +138,4 @@ if __name__ == '__main__':
     #app.run(debug=True, host='0.0.0.0', ssl_context=context)
     app.run(debug=True, host='0.0.0.0')
     #app.run(debug=True)
-
-    """
-    llm = Ollama(
-        model="llama2",
-        callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-        base_url="http://ollama:11434"
-    )
-    
-    assume = "Answer the next question with either true or false and name an example."
-    question = "Can cats use guns?"
-    print(question)
-    s = llm.invoke(assume + " " + question)
-
-    """
 
