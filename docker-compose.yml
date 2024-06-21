@@ -36,12 +36,14 @@ services:
     container_name: ${APP_PREFIX}_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     restart: always
+    mem_limit: 4024m
     ports:
       - "9200:9200"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - logger.level=ERROR
+      #- ES_JAVA_OPTS="-Xms2g -Xmx2g"
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ulimits:

@@ -13,3 +13,9 @@ Flask-SocketIO
 flask-openapi3
 
 minio
+
+python-logging-loki
+pyjwt
+cryptography
+
+

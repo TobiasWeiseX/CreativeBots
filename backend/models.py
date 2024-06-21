@@ -1,84 +1,127 @@
 import os
-from elasticsearch_dsl import Document, InnerDoc, Date, Integer, Keyword, Float, Long, Text, connections, Object
-
-# Define a default Elasticsearch client
-connections.create_connection(hosts="http://localhost:9200")
-
-class Article(Document):
-    title = Text(analyzer='snowball', fields={'raw': Keyword()})
-    body = Text(analyzer='snowball')
-    tags = Keyword()
-    published_from = Date()
-    lines = Integer()
-
-    class Index:
-        name = 'blog'
-        settings = {
-          "number_of_shards": 1,
-        }
-
-    def save(self, ** kwargs):
-        self.lines = len(self.body.split())
-        return super(Article, self).save(** kwargs)
+from elasticsearch_dsl import Document, InnerDoc, Nested, Date, Integer, Keyword, Float, Long, Text, connections, Object, Boolean
 
 
-#======= nextsearch_log ===========
 
-class Sources(InnerDoc):
-    score = Float()
-    sourceFileId = Text()
-    sourceType = Text()
-    tags = Text()
 
-class NextsearchLog(Document):
-    a = Text()
-    chatbotid = Keyword()
-    durasecs = Float()
-    inCt = Float()
-    inToks = Long()
-    llm = Text()
-    outCt = Float()
-    outToks = Long()
-    q = Text()
-    queryid = Keyword()
-    rating = Long()
-    reason = Text()
-    reasontags = Text()
-    session = Keyword()
+class User(Document):
+    email = Keyword()
+    password_hash = Text(index=False)
+    role = Keyword()
 
-    sources = Object(Sources) #Text(analyzer='snowball')
-    temperature = Float()
-    totalCt = Float()
+    #salt = Text(index=False)
+    #profileImage = Text(index=False)
+    #profileImage = Keyword()
 
-    timest = Date() #timestamp
-    date = Date() #iso date
+    isEmailVerified = Boolean()
+    #status = Text()
+
+    #otpExpires = Date()
+    #resetPasswordToken = Text(index=False)
+    #mailToken = Text(index=False)
 
     class Index:
-        #name = 'test_nextsearch_log'
-        name = 'nextsearch_log'
+        name = 'user'
         settings = {
             "number_of_shards": 1,
         }
 
     def save(self, ** kwargs):
-        self.lines = len(self.body.split())
-        return super(NextsearchLog, self).save(** kwargs)
+        return super(User, self).save(**kwargs)
+
+
+
+class Chatbot(Document):
+    name = Text()
+    createdBy = Keyword()
+    description = Text()
+    systemPrompt = Text(index=False)
+
+    #slug = Keyword()
+    files = Nested()
+    text = Text()
+    links = Nested()
+
+    #chatbotImage = Text(index=False)
+    sourceCharacters = Integer()
+
+    #visibility = Keyword()
+    #status = Keyword()
+
+    temperature = Float()
+    llm_model = Keyword()
+
+
+    class Index:
+        name = 'chatbot'
+        settings = {
+            "number_of_shards": 1,
+        }
+
+    def save(self, ** kwargs):
+        return super(Chatbot, self).save(**kwargs)
+
+
+
+
+
+#======= Query Log ===========
+
+
+class Sources(InnerDoc):
+    score = Float()
+    #sourceFileId = Text()
+    sourceType = Text()
+    tags = Text()
+
+    #new fields
+    sourceFileId = Keyword()
+    filename = Keyword()
+    url = Keyword()
+    txt_id = Keyword()
+    page = Integer()
+
+
+
+class QueryLog(Document):
+    answer = Text()
+    question = Text()
+
+    chatbotid = Keyword()
+    durasecs = Float()
+    #inCt = Float()
+    inToks = Long()
+    llm = Text()
+    #outCt = Float()
+    outToks = Long()
+
+    #queryid = Keyword()
+    #rating = Long()
+    #reason = Text()
+    #reasontags = Text()
+    session = Keyword()
+
+    sources = Object(Sources)
+    temperature = Float()
+    #totalCt = Float()
+
+    timest = Date() #timestamp
+    date = Date() #iso date
+
+    class Index:
+        name = 'query_log'
+        settings = {
+            "number_of_shards": 1,
+        }
+
+    def save(self, ** kwargs):
+        return super(QueryLog, self).save(**kwargs)
+
 
 
 if __name__ == "__main__":
     elastic_uri = os.getenv("ELASTIC_URI")
     #elastic_uri = "http://localhost:9200"
-    assert elastic_uri
-
-    # Define a default Elasticsearch client
-    connections.create_connection(hosts=elastic_uri)
-    #connections.create_connection(hosts)
-
-    # create the mappings in elasticsearch
-    NextsearchLog.init()
-
-    # create the mappings in elasticsearch
-    #Article.init()
 
     # create and save and article
     #article = Article(meta={'id': 42}, title='Hello world!', tags=['test'])
