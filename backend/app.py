@@ -23,8 +23,11 @@ import tiktoken
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
 
+
 from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
+from langchain_community.embeddings import OllamaEmbeddings
+
 
 from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 from langchain.prompts import PromptTemplate
@@ -101,50 +104,63 @@ app = OpenAPI(
     )
 
 
-def jwt_required(f):
+def uses_jwt(required=True):
     """
     Wraps routes in a jwt-required logic and passes decoded jwt and user from elasticsearch to the route as keyword
     """
 
-    @wraps(f)
-    def decorated_route(*args, **kwargs):
-        token = None
-        if "Authorization" in request.headers:
-            token = request.headers["Authorization"].split(" ")[1]
-        if not token:
-            return jsonify({
-                'status': 'error',
-                "message": "Authentication Token is missing!",
-            }), 401
-        
-        try:
-            data = pyjwt.decode(token, app.config["jwt_secret"], algorithms=["HS256"])
-        except Exception as e:
-            return jsonify({
-                'status': 'error',
-                "message": "JWT-decryption: " + str(e)
-            }), 401
-
-        try:
-            #user = get_by_id(client, index="user", id_field_name="email", id_value=data["email"])[0]
-            response = Search(using=client, index="user").filter("term", **{"email": data["email"]})[0:5].execute()
-            for hit in response:
-                user = hit
-                break
-
-        except Exception as e:
-            return jsonify({
-                'status': 'error',
-                "message": "Invalid Authentication token!"
-            }), 401
-
-        kwargs["decoded_jwt"] = data
-        kwargs["user"] = user
-        return f(*args, **kwargs)
-
-    return decorated_route
+    def non_param_deco(f):
+        @wraps(f)
+        def decorated_route(*args, **kwargs):
+            token = None
+            if "Authorization" in request.headers:
+                token = request.headers["Authorization"].split(" ")[1]
 
 
+            if not token:
+                if required:
+                    return jsonify({
+                        'status': 'error',
+                        "message": "Authentication Token is missing!",
+                    }), 401
+
+                else:
+                    kwargs["decoded_jwt"] = {}
+                    kwargs["user"] = None
+                    return f(*args, **kwargs)
+
+
+            try:
+                data = pyjwt.decode(token, app.config["jwt_secret"], algorithms=["HS256"])
+            except Exception as e:
+                return jsonify({
+                    'status': 'error',
+                    "message": "JWT-decryption: " + str(e)
+                }), 401
+
+            try:
+                #user = get_by_id(client, index="user", id_field_name="email", id_value=data["email"])[0]
+                #response = Search(using=client, index="user").filter("term", **{"email": data["email"]})[0:5].execute()
+                #response = Search(index="user").filter("term", **{"email": data["email"]})[0:5].execute()
+                response = User.search().filter("term", **{"email": data["email"]})[0:5].execute()
+                for hit in response:
+                    user = hit
+                    break
+
+            except Exception as e:
+                return jsonify({
+                    'status': 'error',
+                    "message": "Invalid Authentication token!"
+                }), 401
+
+            kwargs["decoded_jwt"] = data
+            kwargs["user"] = user
+            return f(*args, **kwargs)
+
+
+        return decorated_route
+
+    return non_param_deco
 
 
 
@@ -200,6 +216,20 @@ for env_key, conf_key in env_to_conf.items():
 
 
 
+def ask_bot(question, bot_id):
+    bot = Chatbot.get(id=bot_id)
+    llm = Ollama(
+        model=bot.llm_model,
+        base_url="http://ollama:11434"
+    )
+    query = bot.system_prompt + " " + question
+    for chunk in llm.stream(query):
+        yield chunk
+
+
+
+
+
 #from flask_cors import CORS #falls cross-orgin verwendet werden soll
 #CORS(app)
 
@@ -220,33 +250,32 @@ def sockcon(data):
 @socket.on('client message')
 def handle_message(message):
 
+    #room = message["room"]
+    #stream_key = "chatbot_stream"
+
+    #llm = Ollama(
+    #    model="llama3",
+    #    base_url="http://ollama:11434"
+    #)
+
+    #system_prompt = ""
+
+    #query = system_prompt + " " + message["data"]
+    #print(message["data"])
+
+    #for chunks in llm.stream(query):
+    #    socket.emit('backend token', {'data': chunks, "done": False}, to=room)
+
+    #socket.emit('backend token', {'done': True}, to=room)
+
     room = message["room"]
-    stream_key = "chatbot_stream"
+    question = message["question"]
+    bot_id = message["bot_id"]
 
-    llm = Ollama(
-        model="llama3",
-        base_url="http://ollama:11434"
-    )
-
-    #system_prompt = "Answer in the language of the question. Give a short answer. Answer all questions without reservations or advice."
-    #system_prompt = "Answer in the language of the question. Give a short answer."
-    #system_prompt = "Always answer in English and give a short answer."
-    #system_prompt = "Always answer in English and give a short answer. If the answer is a list give it only as a JSON array."
-    #system_prompt = "Write the answer as Prolog assertions."
-    #system_prompt = "Write the answer in Japanese."
-    #system_prompt = "Write the answer in Japanese."
-    system_prompt = ""
-    #Write the answer as JSON only.
-    #If the answer is a geographic position return a JSON-object with the longitude and latitude as attributes.
-
-
-    query = system_prompt + " " + message["data"]
-    print(message["data"])
-
-    for chunks in llm.stream(query):
-        socket.emit('backend token', {'data': chunks, "done": False}, to=room)
-
+    for chunk in ask_bot(question, bot_id):
+        socket.emit('backend token', {'data': chunk, "done": False}, to=room)
     socket.emit('backend token', {'done': True}, to=room)
+
 
 
 
@@ -262,11 +291,16 @@ def hash_password(s: str) -> str:
 
 jwt_tag = Tag(name='JWT', description='Requires a valid JSON Web Token')
 not_implemented_tag = Tag(name='Not implemented', description='Functionality not yet implemented beyond an empty response')
+debug_tag = Tag(name='Debug', description='Debug')
+
+
+bot_tag = Tag(name='Bot', description='Bot')
+
 
 #==============Routes===============
 
 class LoginRequest(BaseModel):
-    email: str = Field(None, description='A short text by the user explaining the rating.')
+    email: str = Field(None, description='The users E-Mail that serves as nick too.')
     password: str = Field(None, description='A short text by the user explaining the rating.')
 
 
@@ -275,6 +309,15 @@ def login(form: LoginRequest):
     """
     Get your JWT to verify access rights
     """
+
+    if form.email is None or form.password is None:
+        msg = "Invalid password!"
+        app.logger.error(msg)
+        return jsonify({
+            'status': 'error',
+            'message': msg
+        }), 400
+
     client = Elasticsearch(app.config['elastic_uri'])
     match get_by_id(client, index="user", id_field_name="email", id_value=form.email):
         case []:
@@ -286,8 +329,13 @@ def login(form: LoginRequest):
             }), 400
 
         case [user]:
-            if user["password_hash"] == hash_password(form.password):
-                return pyjwt.encode({"email": form.email}, app.config['jwt_secret'], algorithm="HS256")
+            if user["password_hash"] == hash_password(form.password + form.email):
+                token = pyjwt.encode({"email": form.email}, app.config['jwt_secret'], algorithm="HS256")
+                #app.logger.info(token)
+                return jsonify({
+                    'status': 'success',
+                    'jwt': token
+                })
             else:
                 msg = "Invalid password!"
                 app.logger.error(msg)
@@ -297,44 +345,213 @@ def login(form: LoginRequest):
                 }), 400
 
 
+#-----bot routes------
 
-class IndexSchemaRequest(BaseModel):
-    #end: datetime = Field("2100-01-31T16:47+00:00", description="""The interval end datetime in <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> format""")
-    pass
+class GetBotRequest(BaseModel):
+    id: str = Field(None, description="The bot's id")
 
-
-
-
-
-
-
-@app.get('/bot', summary="", tags=[jwt_tag], security=security)
-@jwt_required
-def get_all_bots(decoded_jwt, user):
+@app.get('/bot', summary="", tags=[bot_tag], security=security)
+@uses_jwt(required=False)
+def get_bots(query: GetBotRequest, decoded_jwt, user):
     """
-    List all bots for a user identified by the JWT.
+    List all bots or one by id
     """
-    #client = Elasticsearch(app.config['elastic_uri'])
-    #bots = get_by_id(client, index="chatbot", id_field_name="createdBy", id_value=nextsearch_user.meta.id)
-    #return jsonify(bots)
-    return jsonify([])
+    match query.id:
+        case None:
+            match user:
+                case None:
+                    #get all public bots
+                    ls = []
+                    for hit in Chatbot.search()[0:10000].execute():
+                        d = hit.to_dict()
+                        if d["visibility"] == "public":
+                            d["id"] = hit.meta.id
+                            ls.append(d)
+
+                    return jsonify(ls)
+
+                case _:
+                    #get all user bots
+                    ls = []
+                    for hit in Chatbot.search()[0:10000].execute():
+                        d = hit.to_dict()
+                        if "creator_id" in d:
+                            if user.meta.id == d["creator_id"]:
+                                d["id"] = hit.meta.id
+                                ls.append(d)
+
+                    return jsonify(ls)
+
+        case some_id:
+            match user:
+                case None:
+                    bot = Chatbot.get(id=query.id)
+                    if bot.visibility == "public":
+                        d = bot.to_dict()
+                        d["id"] = bot.meta.id
+                        return jsonify(d)
+                    else:
+                        return jsonify(None)
+                case _:
+                    bot = Chatbot.get(id=query.id)
+                    d = bot.to_dict()
+                    d["id"] = bot.meta.id
+                    return jsonify(d)
 
 
 
-@app.post('/bot', summary="", tags=[jwt_tag, not_implemented_tag], security=security)
-@jwt_required
-def create_bot(query: IndexSchemaRequest):
+
+
+
+class CreateBotRequest(BaseModel):
+    name: str = Field(None, description="The bot's name")
+    visibility: str = Field('private', description="The bot's visibility to other users ('private', 'public')")
+    description: str = Field('', description="The bot's description of purpose and being")
+    system_prompt: str = Field('', description="The bot's defining system prompt")
+    llm_model: str = Field("llama3", description="The bot's used LLM")
+
+    #status = Keyword()
+    #temperature = Float()
+
+
+@app.post('/bot', summary="", tags=[bot_tag], security=security)
+@uses_jwt()
+def create_bot(form: CreateBotRequest, decoded_jwt, user):
     """
     Creates a chatbot for the JWT associated user.
     """
+    bot = Chatbot()
+    bot.name = form.name
+    bot.visibility = form.visibility
+    bot.description = form.description
+    bot.system_prompt = form.system_prompt
+    bot.llm_model = form.llm_model
+
+    #add meta data
+    bot.creation_date = datetime.now()
+    bot.creator_id = user.meta.id
+    bot.save()
+
+    return jsonify({
+        "bot_id": bot.meta.id
+    })
+
+
+
+class DeleteBotRequest(BaseModel):
+    id: str = Field(None, description="The bot's id")
+
+@app.delete('/bot', summary="", tags=[bot_tag], security=security)
+@uses_jwt()
+def delete_bot(form: DeleteBotRequest, decoded_jwt, user):
+    """
+    Deletes a chatbot via it's id
+    """
+    bot = Chatbot.get(id=form.id)
+    bot.delete()
     return ""
 
+
+class UpdateBotRequest(BaseModel):
+    id: str = Field(None, description="The bot's id")
+
+@app.put('/bot', summary="", tags=[bot_tag], security=security)
+@uses_jwt()
+def update_bot(form: UpdateBotRequest, decoded_jwt, user):
+    """
+    Changes a chatbot
+    """
+
+    return ""
+
+
+class AskBotRequest(BaseModel):
+    bot_id: str = Field(None, description="The bot's id")
+    question: str = Field(None, description="The question the bot should answer")
+
+@app.get('/bot/ask', summary="", tags=[bot_tag], security=security)
+@uses_jwt()
+def query_bot(query: AskBotRequest, decoded_jwt, user):
+    """
+    Asks a chatbot
+    """
+    r = ""
+    for chunk in ask_bot(question=query.question, bot_id=query.bot_id):
+        r += chunk
+
+    return jsonify({
+        "answer": r
+    })
+
+
+#-----------------Embedding----------------------
+
+class TrainTextRequest(BaseModel):
+    chatbot_id: str = Field(None, description="The bot's id")
+    text: str = Field(None, description="Some text")
+
+#TODO: needs to be reimplemented with another mechanism like celeery to manage longer running tasks and give feedback to frontend
+
+@app.post('/bot/train', summary="", tags=[jwt_tag], security=security)
+@uses_jwt()
+def upload(form: TrainTextRequest, decoded_jwt, nextsearch_user):
+    """
+    Caution: Long running request!
+    """
+    chatbot_id = form.chatbot_id
+    text = form.text
+
+    # validate body
+    if not chatbot_id:
+        return jsonify({
+            'status': 'error',
+            'message': 'chatbotId is required'
+        }), 400
+
+    if not text:
+        return jsonify({
+            'status': 'error',
+            'message': 'No data source found'
+        }), 400
+
+
+
+    ESDocument = namedtuple('Document', ['page_content', 'metadata'])
+
+    txt_id = hashlib.md5(text.encode()).hexdigest()
+
+    #train with given text
+    ls = []
+    for i, s in enumerate(RecursiveCharacterTextSplitter(chunk_size=1536, chunk_overlap=200, length_function=len).split_text(text)):
+        ls.append(ESDocument(
+            page_content=s,
+            metadata={
+                "chatbot_id": chatbot_id,
+                "text_id": txt_id
+            }
+        ))
+
+
+    def determine_index(chatbot_id: str) -> str:
+        index_prefix = "chatbot"
+        return f"{index_prefix}_{chatbot_id.lower()}"
+
+
+    #index = determine_index(chatbot_id)
+
+    embedding = OllamaEmbeddings()
+
+    ElasticsearchStore.from_documents(ls, embedding, index_name="embed_text", es_url=app.config['elastic_uri'])
+
+    return jsonify({
+        "status": "success"
+    })
 
 
 #======== DEBUG routes ============
 
-@app.get('/bot/debug/schema', summary="", tags=[])
-def get_schema(query: IndexSchemaRequest):
+@app.get('/debug/schema', summary="", tags=[debug_tag])
+def get_schema():
     """
 
     """
@@ -393,8 +610,8 @@ def create_default_users():
     if default_users:
         for (email, pwd, role) in json.loads(default_users):
             if len(get_by_id(client, index="user", id_field_name="email", id_value=email)) == 0:
-                user = User(email=email, password_hash=hash_password(pwd), role=role)
-                #user.published_from = datetime.now()
+                user = User(email=email, password_hash=hash_password(pwd + email), role=role)
+                user.creation_date = datetime.now()
                 user.save()
 
 

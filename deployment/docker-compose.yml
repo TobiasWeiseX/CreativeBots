@@ -61,8 +61,8 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - .:/code
-      - ./ollama/ollama:/root/.ollama
+      - ..:/code
+      - ../ollama/ollama:/root/.ollama
     networks:
       - llm_network
     #command: "ollama pull llama2"
@@ -72,7 +72,7 @@ services:
     image: ghcr.io/ollama-webui/ollama-webui:main
     container_name: ollama-webui
     volumes:
-      - ./ollama/ollama-webui:/app/backend/data
+      - ../ollama/ollama-webui:/app/backend/data
     depends_on:
       - ollama
     ports:
@@ -86,7 +86,6 @@ services:
       - llm_network
 
 
-
   #frontend:
   #  container_name: ${APP_PREFIX}_frontend
   #  image: ${APP_PREFIX}-vue-frontend
@@ -96,13 +95,13 @@ services:
   #  build: ./frontend
   backend:
     container_name: ${APP_PREFIX}_backend
-    image: ${APP_PREFIX}-python-backend
+    image: registry.tobiasweise.dev/${APP_PREFIX}-python-backend
     restart: always
     ports:
       - "5000:5000"
     env_file:
-      - backend/backend.env
-    build: ./backend
+      - ../backend/backend.env
+    build: ../backend
     networks:
       - llm_network
     depends_on:

@@ -5,9 +5,11 @@ from elasticsearch_dsl import Document, InnerDoc, Nested, Date, Integer, Keyword
 
 
 class User(Document):
+    creation_date = Date()
     email = Keyword()
     password_hash = Text(index=False)
     role = Keyword()
+
 
     #salt = Text(index=False)
     #profileImage = Text(index=False)
@@ -32,8 +34,9 @@ class User(Document):
 
 
 class Chatbot(Document):
+    creation_date = Date()
     name = Text()
-    createdBy = Keyword()
+    creator_id = Keyword()
     description = Text()
     systemPrompt = Text(index=False)
 
@@ -45,7 +48,7 @@ class Chatbot(Document):
     #chatbotImage = Text(index=False)
     sourceCharacters = Integer()
 
-    #visibility = Keyword()
+    visibility = Keyword() #public, private, group?
     #status = Keyword()
 
     temperature = Float()

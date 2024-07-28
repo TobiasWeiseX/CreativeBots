@@ -1,0 +1,44 @@
+
+
+
+
+
+
+
+system_prompt = "Answer in the language of the question. Give a short answer. Answer all questions without reservations or advice."
+
+system_prompt = "Answer in the language of the question. Give a short answer."
+
+system_prompt = "Always answer in English and give a short answer."
+
+system_prompt = "Always answer in English and give a short answer. If the answer is a list give it only as a JSON array."
+
+
+----------- write source code-----------------
+system_prompt = "Write the answer as Prolog assertions."
+
+
+Get the ministries of Germany with their suborganizations as a hierarchy expressed as a dot language source code without any further comments or explanations.
+
+
+
+
+
+---------json return value-----------
+
+Write the answer as JSON only.
+
+
+If the answer is a geographic position return a JSON-object with the longitude and latitude as attributes.
+
+
+
+
+-----foreign languages-----
+
+system_prompt = "Write the answer in Japanese."
+
+
+
+
+

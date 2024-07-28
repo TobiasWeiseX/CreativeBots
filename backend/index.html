@@ -5,101 +5,276 @@
     <meta charset="utf-8">
     <script src="viz.js"></script>
     <script src="viz_widget.js"></script>
+    <script src="tabs.js"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="w3.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 </head>
 <body>
 
-    <!--
-    <dot-graph layout="fdp" style="width:800px; height:600px; box-shadow: 10px 5px 5px black;">
-
-    digraph G {
-
-        graph [
-            splines=spline
-        ];    
-        
-        
-        node [shape=rect];
-        A->B
-        A->C
-        A->D
-        C->D
-    
-    }    
-    
-    </dot-graph>
-    -->
-
-    <div class="w3-container"> 
+    <div class="container-fluid p-3 bg-primary text-white text-center">
+      <h1>Ollama Chatbot</h1>
+      <p>Create and talk to chatbots!</p> 
+    </div>
 
 
+    <div class="container"> 
 
-        <div class="w3-container w3-teal">
-            <h1>Ollama Chatbot</h1>
-        </div> 
-        <br>
+         <!-- Offcanvas Sidebar -->
+        <div class="offcanvas offcanvas-start text-bg-dark" id="demo">
+          <div class="offcanvas-header">
+            <h1 class="offcanvas-title">Settings</h1>
+            <button type="button" class="btn-close btn-close-white text-reset" data-bs-dismiss="offcanvas"></button>
+          </div>
+          <div class="offcanvas-body">
 
-        <details>
-            <summary class="w3-button w3-round w3-teal">Settings...</summary>
+            <button id="login_btn" type="button" class="btn btn-primary text-white">Login</button>
+            <button id="logout_btn" type="button" class="btn btn-danger text-white">Logout</button>
+            <br>
 
-            <div class="w3-panel w3-pale-green">
-                <h2>System prompt:</h2>
-                <textarea class="w3-input w3-border" type="text" style="width: 98%; height: 50px;" id="system_prompt" >Write the answer as JSON only.</textarea>
-            </div>
+            <label for="system_prompt">System prompt:</label>
+            <textarea id="system_prompt" class="form-control" rows="8" name="text"></textarea> 
 
-        </details>
-        
-        <br>
+            <br>
 
-        <div id="scroll_div" class="w3-container" style="overflow:scroll; height: 400px;"> 
-            <table id="log" class="w3-table-all" style="width: 100%;"></table>
+            <label for="bots">Choose a bot:</label>
+            <select name="bots" id="bot_select" class="form-select"></select> 
+
+            <br>
+
+            <label for="views">Choose a view:</label>
+            <select name="views" id="view_select" class="form-select">
+              <option value="md">Markdown</option>
+              <option value="dot">Dot-Lang</option>
+            </select> 
+
+          </div>
         </div>
 
-        <textarea class="w3-input w3-border" style="height: 50px;" id="user_input"></textarea>
-        <button class="w3-button w3-teal" id="submit_btn">Send   ❯</button>
+        <div style="height: 5px !important;"></div>
 
-        <br>
-        <div class="w3-container w3-teal">
-            <p>tobiasweise.dev</p>
-        </div> 
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#home">Chat</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#create_bot_tab">Create bot</a>
+          </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <div class="tab-pane container active" id="home">
+
+                <div style="height: 10px !important;"></div>
+
+                <div id="scroll_div" class="card container" style="overflow:scroll; height: 400px;"> 
+                    <table id="log" class="table" style="width: 100%;"></table>
+                </div>
+
+                <br>
+                <div class="input-group">
+                    <span class="input-group-text">@bot</span>
+                    <input id="user_input" type="text" class="form-control" placeholder="What is...">
+                    <button id="submit_btn" class="btn btn-success" type="submit">Send</button>
+                </div>
+
+
+                <!-- Button to open the offcanvas sidebar -->
+                <button class="btn btn-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#demo">
+                Settings...
+                </button> 
+
+
+            </div>
+            <div class="tab-pane container fade" id="create_bot_tab">
+
+                <div style="height: 10px !important;"></div>
+
+                <i>Creating a new bot requires an account and login via settings!</i>
+                <br>
+                <br>
+
+                <label for="bot_name" class="form-label">Name:</label>
+                <input type="bot_name" class="form-control" id="bot_name" placeholder="MyNewBot">
+
+                <br>
+
+                <label for="bot_visibility">Visibility:</label>
+                <select name="bot_visibility" id="bot_visibility_select" class="form-select">
+                  <option value="public">Public to All</option>
+                  <option value="private">Private to User</option>
+                </select> 
+
+
+                <br>
+
+                <label for="bot_description">Description:</label>
+                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A bot that cares."></textarea>
+
+                <br>
+
+                <label for="bot_llm">Language model:</label>
+                <select name="bot_llm" id="bot_llm_select" class="form-select">
+                  <option value="llama3">Llama3</option>
+                </select> 
+
+                <br>
+
+                <label for="bot_system_prompt">System prompt:</label>
+                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="Answer all questions short and sweet!"></textarea>
+
+                <hr>
+
+                <div class="row">
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col">
+                        <button id="create_bot_btn" disabled "type="button" class="btn btn-primary text-white">Create bot</button>
+                     </div>
+                </div>
+
+                <br>
+
+                <!-- alerts -->
+
+                <div id="alert_spawn"></div>
+
+               <!-- 
+                <div id="alert_bot_created" style="display: none;" class="alert alert-success alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Success!</strong> Bot created!
+                </div>
+
+
+                <div id="alert_not_bot_created" style="display: none;" class="alert alert-danger alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Couldn't create bot!</strong> Something killed that bot!
+                </div>
+                -->
+
+            </div>
+
+        </div>
+
 
     </div>
 
-    <script type="text/javascript" charset="utf-8">
-    window.onload = ()=>{
-        let tA = document.getElementById("user_input");
-        let log = document.getElementById("log");
-        let btn = document.getElementById("submit_btn");
+    <footer>
+        <div class="container-fluid p-3 bg-primary text-white mt-5">
 
-        function log_msg(nick, msg){
-            console.log(nick + ": " + msg);
-            log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
+          <div class="row">
+            <div class="col-sm-4">
+               <h3>A simple UI</h3>
+               <p>This is just a simple frontend with basic functionality hosted on the REST-backend.</p>
+               <p>A standalone frontend written in Vue.js is in development</p>
+            </div>
+            <div class="col-sm-4">
+              <h3>Tools used</h3>
+              <p>❯ Ollama, Llama3</p>
+              <p>❯ Elasticsearch, LangChain</p>
+              <p>❯ Flask, OpenAPI</p>
+              <p>❯ Bootstrap 5</p>
+            </div>
+            <div class="col-sm-4">
+              <h3>Who? Why?</h3>
+              <p>The guy on this site: <a class="text-white" href="https://tobiasweise.dev">tobiasweise.dev</a></p>     
+              <p>For fun and learning...</p>
+              <p>...and maybe getting a job that employs the used skills.</p>
+            </div>
+          </div>
+
+        </div>
+    </footer>
+
+    <script>
+
+    //idea: generate proxy opject via openapi.json   api(url).login_now()
+
+    async function login(email, pwd){
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("password", pwd);
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+                'accept': '*/*'
+            },
+            body: formData
+        });
+        return response.json();
+    }
+
+    async function get_bots(jwt){
+        if(jwt){
+            const response = await fetch("/bot", {
+                method: "GET",
+                headers: {
+                    'accept': '*/*',
+                    'Authorization': 'Bearer ' + jwt
+                }
+            });
+            return response.json();
         }
-
-
-        function scroll_down(){
-            let div = document.getElementById("scroll_div");
-            div.scrollTop = div.scrollHeight;
+        else{
+            const response = await fetch("/bot", {
+                method: "GET",
+                headers: {
+                    'accept': '*/*'
+                }
+            });
+            return response.json();
         }
+    }
 
-        log_msg("Bot", "Ask a question!");
 
+
+    async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("visibility", visibility);
+        formData.append("description", description);
+        formData.append("llm_model", llm);
+        formData.append("system_prompt", sys_prompt);
+
+        const response = await fetch("/bot", {
+            method: "POST",
+            headers: {
+                'accept': '*/*',
+                'Authorization': 'Bearer ' + jwt
+            },
+            body: formData
+        });
+        return response.json();
+    }
+
+
+    function ask_question(s){
         const socket = io();
 
         let room = null;
-        socket.on('backend response', function(data) {
+        socket.on('backend response', data =>{
             console.log(data);
             if(data.room) room = data.room;
         });
+
+
 
         let answer_count = 0;
         let acc_text = "";
         let first_token = true;
 
-        socket.on('backend token', function(obj) {
+        socket.on('backend token', obj =>{
             console.log(obj);
             if(first_token){
                 let id = answer_count;
@@ -110,15 +285,306 @@
                 acc_text += "" + obj.data;
                 first_token = false;
                 document.getElementById(answer_count).innerHTML += obj.data;
-
                 scroll_down();
             }
             else{
                 //log_msg("Bot", acc_text);
+
+                let final_answer = document.getElementById(answer_count).textContent;
+
+                //alert(final_answer);
+
+                final_answer = final_answer.replace("```", "").replace("```", "");
+
+                switch(view_select.value){
+
+                    case "md":
+                        //document.getElementById(answer_count).innerHTML += obj.data;
+                        document.getElementById(answer_count).innerHTML = marked.parse(final_answer);
+                        break;
+                    case "dot":
+                        //let layout = "fdp";
+                        let layout = "dot";
+                        document.getElementById(answer_count).innerHTML = `<dot-graph layout="${layout}" style="width:100%; height:100%;">${final_answer}</dot-graph>`;
+                        break;
+                    default:
+                        //document.getElementById(answer_count).innerHTML += obj.data;
+                        break;
+                }
+
                 acc_text = "";
                 first_token = true;
                 answer_count += 1;
+                scroll_down();
+            }
+        });
 
+
+        //send the request
+        let tA2 = document.getElementById("system_prompt");
+        socket.emit('client message', {
+            question: tA2.value + " " + s,
+            bot_id: bot_select.value,
+            room: room
+        });
+
+
+
+        return {
+            next(){
+                return {
+                    done: false,
+                    value: new Promise((resolve,reject)=>{
+                        resolve(1);
+                    })
+                }
+            },
+            [Symbol.iterator]() {
+                return this;
+            }
+        }
+
+    }
+
+    window.onload = async ()=>{
+        document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
+
+        //chat
+        let tA = document.getElementById("user_input");
+        let log = document.getElementById("log");
+        let btn = document.getElementById("submit_btn");
+        let scroll_div = document.getElementById("scroll_div");
+
+        //settings
+        let bot_select = document.getElementById("bot_select");
+        let view_select = document.getElementById("view_select");
+        let login_btn = document.getElementById("login_btn");
+        let logout_btn = document.getElementById("logout_btn");
+
+        //create bot form
+        let create_bot_btn = document.getElementById("create_bot_btn");
+        let bot_name = document.getElementById("bot_name");
+        let bot_visibility_select = document.getElementById("bot_visibility_select");
+        let bot_description = document.getElementById("bot_description");
+        let bot_llm_select = document.getElementById("bot_llm_select");
+        let bot_system_prompt = document.getElementById("bot_system_prompt");
+
+        let alert_spawn = document.getElementById("alert_spawn");
+
+
+        function log_msg(nick, msg){
+            console.log(nick + ": " + msg);
+            log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
+        }
+
+        function scroll_down(){
+            scroll_div.scrollTop = scroll_div.scrollHeight;
+        }
+
+        function get_bot_name(){
+            let i = bot_select.selectedIndex;
+            if(i===-1) return "Bot";
+            return bot_select.options[i].text;
+        }
+
+        function set_bot_list(ls){
+            bot_select.innerHTML = ls.map(bot => `<option value="${bot.id}">${bot.name}</option>`).join("");
+        }
+
+
+        function clean_bot_create_form(){
+            bot_name.value = "";
+            bot_description.value = "";
+            bot_system_prompt.value = "";
+        }
+
+
+        function alert_bot_creation(success){
+            if(success){
+                alert_spawn.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Success!</strong> Bot created!
+                </div>
+                `;
+            }
+            else{
+                alert_spawn.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Couldn't create bot!</strong> Something killed that bot!
+                </div>
+                `;
+            }
+        }
+
+
+        function set_ui_loggedin(b){
+            if(b){
+                //enable create bot button
+                create_bot_btn.removeAttribute("disabled");
+                login_btn.style.display = "none";
+                logout_btn.style.display = "block";
+            }
+            else{
+                //disable create bot button
+                create_bot_btn.setAttribute("disabled", "disabled");
+                logout_btn.style.display = "none";
+                login_btn.style.display = "block";
+            }
+        }
+
+        //init: are we logged in on start?
+        let jwt = localStorage.getItem("jwt");
+        if(jwt === null){
+            let ls = await get_bots();
+            if(ls.length === 0){
+                console.error("No bots found!");
+            }
+            else{
+                set_bot_list(ls);
+            }
+            set_ui_loggedin(false);
+        }
+        else{
+            let ls = await get_bots(jwt);
+            if(ls.length === 0){
+                console.error("No bots found!");
+            }
+            else{
+                set_bot_list(ls);
+            }
+            set_ui_loggedin(true);
+        }
+
+
+        //for await (let x of new_async_gen()){
+        //    alert(x);
+        //}
+
+
+        //init buttons
+        create_bot_btn.onclick = async ()=>{
+            let jwt = localStorage.getItem("jwt");
+            if(jwt){
+                let name = bot_name.value;
+                let visibility = bot_visibility_select.value;
+                let description = bot_description.value;
+                let llm = bot_llm_select.value;
+                let sys_prompt = bot_system_prompt.value;
+
+                try{
+                    await create_bot(jwt, name, visibility, description, llm, sys_prompt);
+                    alert_bot_creation(true);
+                    clean_bot_create_form();
+                }
+                catch(err){
+                    console.error(err);
+                    console.error("Couldn't create bot!");
+                    alert_bot_creation(false);
+                }
+            }
+        };
+
+
+        login_btn.onclick = async ()=>{
+            let nick = prompt("Please enter your email");
+            let pwd = prompt("Please enter your password");
+
+            try{
+                let{jwt} = await login(nick, pwd);
+
+                if(!jwt) throw Error("No JWT!");
+
+                localStorage.setItem("jwt", jwt);
+
+                set_ui_loggedin(true);
+
+                let ls = await get_bots(jwt);
+                if(ls.length === 0){
+                    console.error("No bots found!");
+                }
+                else{
+                    set_bot_list(ls);
+                }
+
+            }
+            catch(e){
+                console.error("Login failed!");
+            }
+        };
+
+        logout_btn.onclick = async ()=>{
+            localStorage.removeItem("jwt");
+
+            set_ui_loggedin(false);
+
+            let ls = await get_bots();
+            if(ls.length === 0){
+                console.error("No bots found!");
+            }
+            else{
+                set_bot_list(ls);
+            }
+        };
+
+
+        //init chat
+        log_msg(get_bot_name(), "Ask a question!");
+
+        const socket = io();
+
+        let room = null;
+        socket.on('backend response', data =>{
+            console.log(data);
+            if(data.room) room = data.room;
+        });
+
+        let answer_count = 0;
+        let acc_text = "";
+        let first_token = true;
+
+        socket.on('backend token', obj =>{
+            console.log(obj);
+            if(first_token){
+                let id = answer_count;
+                log.innerHTML += `<tr><td><b>${get_bot_name()}</b>:</td><td id="${id}"></td></tr>`;
+            }
+
+            if(!obj.done){
+                acc_text += "" + obj.data;
+                first_token = false;
+                document.getElementById(answer_count).innerHTML += obj.data;
+                scroll_down();
+            }
+            else{
+
+                let final_answer = acc_text;
+                console.log(final_answer);
+
+
+                switch(view_select.value){
+
+                    case "md":
+                        //document.getElementById(answer_count).innerHTML += obj.data;
+                        document.getElementById(answer_count).innerHTML = marked.parse(final_answer);
+                        break;
+
+                    case "dot":
+                        final_answer = final_answer.replace("```dot", "").replace("```", "");
+                        //let layout = "fdp";
+                        let layout = "dot";
+                        document.getElementById(answer_count).innerHTML = `<dot-graph layout="${layout}" style="width:100%; height:100%;">${final_answer}</dot-graph>`;
+                        break;
+
+                    default:
+                        //document.getElementById(answer_count).innerHTML += obj.data;
+                        break;
+                }
+
+                acc_text = "";
+                first_token = true;
+                answer_count += 1;
                 scroll_down();
             }
         });
@@ -130,7 +596,11 @@
                 log_msg('User', s);
 
                 let tA2 = document.getElementById("system_prompt");
-                socket.emit('client message', {data: tA2.value + " " + s, room: room});
+                socket.emit('client message', {
+                    question: tA2.value + " " + s,
+                    bot_id: bot_select.value,
+                    room: room
+                });
             }
             scroll_down();
         };
