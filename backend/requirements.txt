@@ -1,4 +1,9 @@
 
+webdriver_manager
+requests
+selenium
+bs4
+
 elasticsearch
 elasticsearch-dsl
 langchain
@@ -6,6 +11,9 @@ langchain-community
 tiktoken
 
 pydantic
+
+fastapi
+
 Werkzeug
 flask
 Flask-Cors
@@ -18,4 +26,5 @@ python-logging-loki
 pyjwt
 cryptography
 
+neo4j
 

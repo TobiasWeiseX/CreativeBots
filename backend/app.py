@@ -214,7 +214,7 @@ for env_key, conf_key in env_to_conf.items():
         app.config[conf_key] = x
 
 
-
+#TODO add history
 
 def ask_bot(question, bot_id):
     bot = Chatbot.get(id=bot_id)
@@ -247,30 +247,18 @@ def sockcon(data):
     socket.emit('backend response', {'msg': f'Connected to room {room} !', "room": room}) # looks like iOS needs an answer
 
 
+#TODO: pydantic message type validation
+
+
 @socket.on('client message')
 def handle_message(message):
 
-    #room = message["room"]
-    #stream_key = "chatbot_stream"
-
-    #llm = Ollama(
-    #    model="llama3",
-    #    base_url="http://ollama:11434"
-    #)
-
-    #system_prompt = ""
-
-    #query = system_prompt + " " + message["data"]
-    #print(message["data"])
-
-    #for chunks in llm.stream(query):
-    #    socket.emit('backend token', {'data': chunks, "done": False}, to=room)
-
-    #socket.emit('backend token', {'done': True}, to=room)
-
+    #try:
     room = message["room"]
     question = message["question"]
     bot_id = message["bot_id"]
+    #except:
+    #    return
 
     for chunk in ask_bot(question, bot_id):
         socket.emit('backend token', {'data': chunk, "done": False}, to=room)
@@ -585,15 +573,13 @@ def get_schema():
 
 @app.route("/") #Index Verzeichnis
 def index():
-    return send_from_directory('.', "index.html")
+    return send_from_directory('./public', "index.html")
 
-#@app.route("/info") #spezielle Nutzer definierte Route
-#def info():
-#    return sys.version+" "+os.getcwd()
 
 @app.route('/<path:path>') #generische Route (auch Unterordner)
 def catchAll(path):
-    return send_from_directory('.', path)
+    #return send_from_directory('.', path)
+    return send_from_directory('./public', path)
 
 
 

@@ -35,21 +35,30 @@ services:
   elasticsearch:
     container_name: ${APP_PREFIX}_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    #image: opensearchproject/opensearch
     restart: always
     mem_limit: 4024m
     ports:
       - "9200:9200"
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
       - logger.level=ERROR
+      - bootstrap.memory_lock=true # Disable JVM heap memory swapping
+
+      - xpack.security.enabled=false
+
+      #- OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}    # Sets the demo admin user password when using demo configuration, required for OpenSearch 2.12 and later
+      #- "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # Set min and max JVM heap sizes to at least 50% of system RAM
       #- ES_JAVA_OPTS="-Xms2g -Xmx2g"
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ulimits:
       memlock:
-        soft: -1
+        soft: -1 # Set memlock to unlimited (no soft or hard limit)
         hard: -1
+      nofile:
+        soft: 65536 # Maximum number of open files for the opensearch user - set to at least 65536
+        hard: 65536
     networks:
       - llm_network
 
