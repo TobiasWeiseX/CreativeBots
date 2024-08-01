@@ -64,6 +64,10 @@ from funcs import group_by
 from elastictools import get_by_id, update_by_id, delete_by_id
 from models import QueryLog, Chatbot, User
 
+import pyttsx3
+
+engine = pyttsx3.init()
+
 
 
 #LLM_PAYLOAD = int(os.getenv("LLM_PAYLOAD"))
@@ -334,6 +338,53 @@ def login(form: LoginRequest):
 
 
 #-----bot routes------
+
+
+class GetSpeechRequest(BaseModel):
+    text: str = Field(None, description="Some text to convert to mp3")
+
+
+@app.post('/text2speech', summary="", tags=[], security=security)
+@uses_jwt()
+def text2speech(form: GetSpeechRequest, decoded_jwt, user):
+
+    #def get_voice(s):
+    #    for v in engine.getProperty("voices"):
+    #        if s == v.id:
+    #            return v
+
+    #def set_voice(v):
+    #    engine.setProperty("voice", v.id)
+
+    #def set_volume(n):
+    #    engine.setProperty('volume', engine.getProperty('volume') + n)
+
+    #def set_rate(n):
+    #    engine.setProperty('rate', engine.getProperty('rate') + n)
+
+
+
+
+    #voices = engine.getProperty('voices')
+    #engine.setProperty('voice', voices[1].id)
+    #set_voice(get_voice("english"))
+    #set_volume(-5.0)
+    #set_rate(-40)
+
+    # Speak the response
+    #engine.say(response)
+    #ngine.say("Hello World!")
+    #engine.say("Neuroscience!")
+
+
+    file_name = 'speech.mp3'
+    engine.save_to_file(form.text, file_name)
+    engine.runAndWait()
+    return send_file(file_name) #, mimetype = 'zip', attachment_filename= 'Audiofiles.zip', as_attachment = True)
+
+
+
+
 
 class GetBotRequest(BaseModel):
     id: str = Field(None, description="The bot's id")

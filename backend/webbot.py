@@ -8,7 +8,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 #from selenium.webdriver.chrome.options import Options
 
-
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.firefox.service import Service as FirefoxService
 
@@ -108,10 +107,6 @@ class Bot:
         self.__browser.execute_script(f"window.scrollBy(0,{d})")
 
 
-
-
-
-
 def collect_pagination_items(bot, start_url, next_page, get_nr_pages, get_items, kill_cookie_questions=lambda: None):
     """
     Collect all the content of a pagination
@@ -132,10 +127,6 @@ def collect_pagination_items(bot, start_url, next_page, get_nr_pages, get_items,
 
     return results
 
-
-
-
-
 """
 #ele.text
 #ele = browser.find_element_by_id("")
@@ -147,8 +138,6 @@ print(ele)
 
 ele.send_keys("test")
 ele.send_keys(Keys.RETURN)
-
-
 
 
 def getKeiserHeadlines():
@@ -185,7 +174,3 @@ def getWeltHeadLines():
     return ls
 
 """
-
-
-
-
