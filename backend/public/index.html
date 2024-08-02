@@ -129,6 +129,7 @@
             <select name="views" id="view_select" class="form-select">
               <option value="md">Markdown</option>
               <option value="dot">Dot-Lang</option>
+              <option value="plain">Plain text</option>
             </select> 
 
           </div>
@@ -650,7 +651,6 @@
                 user_input.value = "";
                 log_msg('User', input_string);
 
-                //let tA2 = document.getElementById("system_prompt");
                 let acc_text = "";
 
                 log.innerHTML += `<tr><td><b>${get_bot_name()}</b>:</td><td id="${answer_count}"></td></tr>`;
@@ -660,9 +660,20 @@
 
                     acc_text += "" + token;
                     //document.getElementById(answer_count).innerHTML += obj.data;
-                    document.getElementById(answer_count).innerHTML = marked.parse(acc_text);
-                    scroll_down();
 
+                    switch(view_select.value){
+                        case "md":
+                            document.getElementById(answer_count).innerHTML = marked.parse(acc_text);
+                            break;
+
+                        case "plain":
+                            document.getElementById(answer_count).innerHTML = `<pre>${acc_text}</pre>`;
+                            break;
+                    }
+
+                    //document.getElementById(answer_count).innerHTML = marked.parse(acc_text);
+
+                    scroll_down();
                 }
 
                 /*
