@@ -54,7 +54,6 @@ sudo docker rmi $(sudo docker images -f "dangling=true" -q)
 Give just the translation of the given input to German and nothing else.
 
 
-Give the JSON of a graph linking Germanys 9 biggest cities
 
 
 

@@ -28,9 +28,7 @@ cryptography
 
 neo4j
 
-
 pyttsx3
-
 
 
 

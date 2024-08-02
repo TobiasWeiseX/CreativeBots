@@ -6,33 +6,32 @@ OpenAPI access via http://localhost:5000/openapi/ on local docker-compose deploy
 #import warnings
 #warnings.filterwarnings("ignore")
 
-#std lib modules:
+#------std lib modules:-------
 import os, sys, json, time
+import os.path
 from typing import Any, Tuple, List, Dict, Any, Callable, Optional
 from datetime import datetime, date
 from collections import namedtuple
 import hashlib, traceback, logging
 from functools import wraps
+import base64
 
+#-------ext libs--------------
 #llm
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_community.llms import Ollama
 
 import tiktoken
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
+from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
+from langchain.prompts import PromptTemplate
 
-
+from langchain_community.llms import Ollama
 from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_community.embeddings import OllamaEmbeddings
 
-
-from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
-from langchain.prompts import PromptTemplate
-
-#ext libs
 from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
 from elasticsearch_dsl import Search, A, Document, Date, Integer, Keyword, Float, Long, Text, connections
 from elasticsearch.exceptions import ConnectionError
@@ -44,30 +43,23 @@ import jwt as pyjwt
 
 
 #flask, openapi
-from flask import Flask, send_from_directory, Response, request, jsonify
-import sys, os
+from flask import Flask, send_from_directory, send_file, Response, request, jsonify
 from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
 from flask_openapi3 import Info, Tag, OpenAPI, Server, FileStorage
 from flask_socketio import SocketIO, join_room, leave_room, rooms, send
 
-
-import base64
-import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+import pyttsx3
 
 #----------home grown--------------
 #from scraper import WebScraper
 from funcs import group_by
 from elastictools import get_by_id, update_by_id, delete_by_id
 from models import QueryLog, Chatbot, User
-
-import pyttsx3
-
-engine = pyttsx3.init()
-
 
 
 #LLM_PAYLOAD = int(os.getenv("LLM_PAYLOAD"))
@@ -260,11 +252,13 @@ def handle_message(message):
     #try:
     room = message["room"]
     question = message["question"]
+    system_prompt = message["system_prompt"]
     bot_id = message["bot_id"]
+
     #except:
     #    return
 
-    for chunk in ask_bot(question, bot_id):
+    for chunk in ask_bot(system_prompt + " " + question, bot_id):
         socket.emit('backend token', {'data': chunk, "done": False}, to=room)
     socket.emit('backend token', {'done': True}, to=room)
 
@@ -347,40 +341,56 @@ class GetSpeechRequest(BaseModel):
 @app.post('/text2speech', summary="", tags=[], security=security)
 @uses_jwt()
 def text2speech(form: GetSpeechRequest, decoded_jwt, user):
+    engine = pyttsx3.init()
 
-    #def get_voice(s):
-    #    for v in engine.getProperty("voices"):
-    #        if s == v.id:
-    #            return v
+    def get_voice(s):
+        for v in engine.getProperty("voices"):
+            if s == v.id:
+                return v
 
-    #def set_voice(v):
-    #    engine.setProperty("voice", v.id)
+    def set_voice(v):
+        engine.setProperty("voice", v.id)
 
-    #def set_volume(n):
-    #    engine.setProperty('volume', engine.getProperty('volume') + n)
+    def set_volume(n):
+        engine.setProperty('volume', engine.getProperty('volume') + n)
 
-    #def set_rate(n):
-    #    engine.setProperty('rate', engine.getProperty('rate') + n)
-
-
-
+    def set_rate(n):
+        engine.setProperty('rate', engine.getProperty('rate') + n)
 
     #voices = engine.getProperty('voices')
     #engine.setProperty('voice', voices[1].id)
-    #set_voice(get_voice("english"))
-    #set_volume(-5.0)
-    #set_rate(-40)
+    set_voice(get_voice("english"))
+    set_volume(-5.0)
+    set_rate(-40)
 
-    # Speak the response
-    #engine.say(response)
-    #ngine.say("Hello World!")
-    #engine.say("Neuroscience!")
+    #espeak -v mb-en1 -s 120 "Hello world"
+    #sudo apt-get install mbrola mbrola-en1
 
+    unix_timestamp = datetime.now().timestamp()
+    file_name = f'speech_{unix_timestamp}.mp3'
+    file_path = f'./public/{file_name}'
 
-    file_name = 'speech.mp3'
-    engine.save_to_file(form.text, file_name)
+    engine.save_to_file(form.text, file_path)
     engine.runAndWait()
-    return send_file(file_name) #, mimetype = 'zip', attachment_filename= 'Audiofiles.zip', as_attachment = True)
+
+    timeout = 10
+    t = 0
+    step = 0.1
+    while not os.path.isfile(file_path):
+        time.sleep(step)
+        t += step
+        if t > timeout:
+            raise Exception("Timeout(%s s) for creating speech.mp3!" % timeout)
+
+    time.sleep(step)
+
+
+    #return send_file(file_path, mimetype='audio/mpeg') #, attachment_filename= 'Audiofiles.zip', as_attachment = True)
+    return jsonify({
+        "status": "success",
+        "file": "/" + file_name
+    })
+
 
 
 

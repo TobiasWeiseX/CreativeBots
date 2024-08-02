@@ -144,6 +144,11 @@
           <li class="nav-item">
             <a class="nav-link" data-bs-toggle="tab" href="#create_bot_tab">Create bot</a>
           </li>
+
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tweak_bot_tab">Tweak bot</a>
+          </li>
+
         </ul>
 
         <!-- Tab panes -->
@@ -237,7 +242,7 @@
                       <div class="col"></div>
                       <div class="col"></div>
                       <div class="col">
-                        <button id="create_bot_btn" disabled "type="button" class="btn btn-primary text-white">Create bot</button>
+                        <button id="create_bot_btn" disabled type="button" class="btn btn-primary text-white">Create bot</button>
                      </div>
                 </div>
 
@@ -264,6 +269,17 @@
 
             </div>
 
+
+            <div class="tab-pane container fade" id="tweak_bot_tab">
+
+                <div style="height: 10px !important;"></div>
+
+                <i>Tweaking a new bot requires an account and login via settings!</i>
+                <br>
+                <br>
+
+
+            </div>
         </div>
 
 
@@ -335,6 +351,20 @@
         }
     }
 
+    async function text2speech(jwt, txt){
+        const formData = new FormData();
+        formData.append("text", txt);
+        const response = await fetch("/text2speech", {
+            method: "POST",
+            headers: {
+                'accept': '*/*',
+                'Authorization': 'Bearer ' + jwt
+            },
+            body: formData
+        });
+        return response.json();
+    }
+
     async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
         const formData = new FormData();
         formData.append("name", name);
@@ -394,25 +424,23 @@
                 else{
                     done = true;
                     socket.off('backend token');
+                    dom_ele.dispatchEvent(new CustomEvent(evt_name, { detail: "" }));
                 }
             });
-            socket.emit('client message', {
-                question: system_prompt + " " + question,
-                bot_id: bot_id,
-                room: room
-            });
+            socket.emit('client message', {question, system_prompt, bot_id, room});
             while(!done){
                 yield f();
             }
+            return;
         }
         catch(e){
             console.error(e);
+            return;
         }
         finally{
-            //socket.off('backend token');
-            //dom_ele.removeEventListener(evt_name, evt_listener);
             socket.emit('end');
             socket.close();
+            return;
         }
     }
 
@@ -421,7 +449,9 @@
         document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
 
         //chat
-        let tA = document.getElementById("user_input");
+        let user_input = document.getElementById("user_input");
+        let system_prompt = document.getElementById("system_prompt");
+
         let log = document.getElementById("log");
         let submit_btn = document.getElementById("submit_btn");
         let scroll_div = document.getElementById("scroll_div");
@@ -612,20 +642,20 @@
         };
 
         submit_btn.onclick = async evt =>{
-            let s = tA.value;
-            //if(s.trim() !== '' && room){
-            if(s.trim() !== ''){
+            let input_string = user_input.value;
+
+            if(input_string.trim() !== ''){
                 answer_count += 1;
 
-                tA.value = "";
-                log_msg('User', s);
+                user_input.value = "";
+                log_msg('User', input_string);
 
-                let tA2 = document.getElementById("system_prompt");
+                //let tA2 = document.getElementById("system_prompt");
                 let acc_text = "";
 
                 log.innerHTML += `<tr><td><b>${get_bot_name()}</b>:</td><td id="${answer_count}"></td></tr>`;
 
-                for await (let token of ask_question(bot_select.value, s, tA2.value)){
+                for await (let token of ask_question(bot_select.value, input_string, system_prompt.value)){
                     console.log(token);
 
                     acc_text += "" + token;
@@ -635,13 +665,38 @@
 
                 }
 
+                /*
+                function play() {
+                  var audio = new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3');
+                  audio.play();
+                }
+
+                */
+
+
                 let final_answer = acc_text;
                 console.log(final_answer);
+
+
+                let extra_s = "";
+                let jwt = localStorage.getItem("jwt");
+                if(jwt){
+                    let{file} = await text2speech(jwt, final_answer);
+
+                    //autoplay controls
+                    extra_s = `
+                        <audio controls>
+                            <source src="${file}" type="audio/mpeg">
+                        </audio>`;
+
+                    console.log(file);
+                }
+
 
                 switch(view_select.value){
 
                     case "md":
-                        document.getElementById(answer_count).innerHTML = marked.parse(final_answer);
+                        document.getElementById(answer_count).innerHTML = marked.parse(final_answer) + extra_s;
                         break;
 
                     case "dot":
