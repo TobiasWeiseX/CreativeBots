@@ -26,6 +26,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+    <script>
+    X3DOM_SECURITY_OFF = true;
+    </script>
+    <script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script> 
+    <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
+
 </head>
 <body>
 
@@ -128,8 +134,10 @@
             <label for="views">Choose a view:</label>
             <select name="views" id="view_select" class="form-select">
               <option value="md">Markdown</option>
-              <option value="dot">Dot-Lang</option>
               <option value="plain">Plain text</option>
+            <!--
+              <option value="dot">Dot-Lang</option>
+            -->
             </select> 
 
           </div>
@@ -642,6 +650,47 @@
             set_bot_list(ls);
         };
 
+
+        function map_md_code(f, md_txt){
+            let r = "";
+            let text = true;
+            for(let s of md_txt.split("```")){
+                if(text){
+                    r += s;
+                    text = false;
+                }
+                else{
+                    r += f(x);
+                    text = true;
+                }
+
+            }
+            return r;
+        }
+
+
+        function render_code(s){
+
+            console.log(s);
+
+
+            if(s.startsWith("dot")){
+
+                s = s.replace(/dot\\s/i, "");
+                //let layout = "fdp";
+                let layout = "dot";
+                return `<dot-graph layout="${layout}" style="width:100%; height:100%;">${s}</dot-graph>`;
+
+            }
+
+
+            return s;
+        }
+
+
+
+
+
         submit_btn.onclick = async evt =>{
             let input_string = user_input.value;
 
@@ -650,29 +699,26 @@
 
                 user_input.value = "";
                 log_msg('User', input_string);
+                log.innerHTML += `<tr>
+                                    <td><b>${get_bot_name()}</b>:</td>
+                                    <td id="${answer_count}"></td>
+                                  </tr>`;
+                let table_cell = document.getElementById(answer_count);
 
                 let acc_text = "";
-
-                log.innerHTML += `<tr><td><b>${get_bot_name()}</b>:</td><td id="${answer_count}"></td></tr>`;
-
                 for await (let token of ask_question(bot_select.value, input_string, system_prompt.value)){
-                    console.log(token);
-
+                    //console.log(token);
                     acc_text += "" + token;
-                    //document.getElementById(answer_count).innerHTML += obj.data;
-
                     switch(view_select.value){
                         case "md":
-                            document.getElementById(answer_count).innerHTML = marked.parse(acc_text);
+                            //table_cell.innerHTML = marked.parse(acc_text);
+                            table_cell.innerHTML = map_md_code(render_code, marked.parse(acc_text));
                             break;
 
                         case "plain":
-                            document.getElementById(answer_count).innerHTML = `<pre>${acc_text}</pre>`;
+                            table_cell.innerHTML = `<pre>${acc_text}</pre>`;
                             break;
                     }
-
-                    //document.getElementById(answer_count).innerHTML = marked.parse(acc_text);
-
                     scroll_down();
                 }
 
@@ -707,22 +753,18 @@
                 switch(view_select.value){
 
                     case "md":
-                        document.getElementById(answer_count).innerHTML = marked.parse(final_answer) + extra_s;
-                        break;
+                        //table_cell.innerHTML = marked.parse(final_answer) + extra_s;
 
-                    case "dot":
-                        final_answer = final_answer.replace("```dot", "").replace("```", "");
-                        //let layout = "fdp";
-                        let layout = "dot";
-                        document.getElementById(answer_count).innerHTML = `<dot-graph layout="${layout}" style="width:100%; height:100%;">${final_answer}</dot-graph>`;
+                        table_cell.innerHTML = map_md_code(render_code, marked.parse(acc_text)) + extra_s;
                         break;
 
                     default:
-                        document.getElementById(answer_count).innerHTML = `<pre>${final_answer}</pre>`;
+                        table_cell.innerHTML = `<pre>${final_answer}</pre>`;
                         break;
                 }
 
-                //answer_count += 1;
+
+
                 scroll_down();
 
             }
