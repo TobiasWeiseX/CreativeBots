@@ -654,13 +654,16 @@
         function map_md_code(f, md_txt){
             let r = "";
             let text = true;
-            for(let s of md_txt.split("```")){
+            let parts = md_txt.split("```");
+            console.log(parts);
+
+            for(let s of parts){
                 if(text){
                     r += s;
                     text = false;
                 }
                 else{
-                    r += f(x);
+                    r += f(s);
                     text = true;
                 }
 
@@ -709,7 +712,7 @@
                     switch(view_select.value){
                         case "md":
                             //table_cell.innerHTML = marked.parse(acc_text);
-                            table_cell.innerHTML = map_md_code(render_code, marked.parse(acc_text));
+                            table_cell.innerHTML = marked.parse(map_md_code(render_code, acc_text));
                             break;
 
                         case "plain":
@@ -752,7 +755,7 @@
                     case "md":
                         //table_cell.innerHTML = marked.parse(final_answer) + extra_s;
 
-                        table_cell.innerHTML = map_md_code(render_code, marked.parse(acc_text)) + extra_s;
+                        table_cell.innerHTML = marked.parse(map_md_code(render_code, acc_text)) + extra_s;
                         break;
 
                     default:
