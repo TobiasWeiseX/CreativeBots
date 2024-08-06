@@ -3,7 +3,7 @@ run-name: ${{ gitea.actor }} is deploying new version
 on: [push]
 jobs:
   Redeploy-App:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest #self-hosted
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ gitea.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by Gitea!"
