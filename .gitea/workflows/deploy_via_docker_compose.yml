@@ -2,24 +2,8 @@ name: Gitea Docker Redeploy
 run-name: ${{ gitea.actor }} is deploying new version
 on: [push]
 jobs:
-  Redeploy-App:
-    runs-on: ubuntu-latest #self-hosted
-    steps:
-      - run: echo "🔎 The name of your branch is ${{ gitea.ref }} and your repository is ${{ gitea.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      #- run: echo "💡 The ${{ gitea.repository }} repository has been cloned to the runner."
-      #- run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ gitea.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
-
-      #- run: ls /home/tobias
-
-
-  ssh_to_self:
-    name: ssh_to_self
+  ssh_to_self_and_redeploy:
+    name: Redploy-App-on-self-via-SSH
     runs-on: ubuntu-latest
     steps:
     - name: executing remote ssh commands using password
@@ -31,7 +15,12 @@ jobs:
         port: ${{ secrets.PORT }}
         script: |
             ls
-            whoami
-
-
+            cd Ollama-Bot
+            cd deployment
+            docker-compose down
+            git pull
+            docker-compose build
+            docker-compose push
+            docker-compose up -d
+    
 
