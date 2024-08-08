@@ -13,14 +13,19 @@ jobs:
         username: ${{ secrets.USERNAME }}
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
+        script_stop: true
         script: |
+            whoami
             ls
-            cd Ollama-Bot
-            cd deployment
+            cd Ollama-Bot/deployment
             docker-compose down
             git pull
+            echo "Git pull finishes!"
             docker-compose build
+            echo "Image build finishes!"
             docker-compose push
+            echo "Image push finishes!"
             docker-compose up -d
-    
+            echo "Docker compose deployment finished!"
+
 
