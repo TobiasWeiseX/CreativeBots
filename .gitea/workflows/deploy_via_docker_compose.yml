@@ -26,6 +26,6 @@ jobs:
             docker-compose push
             echo "Image push finishes!"
             docker-compose up -d
-            echo "Docker compose deployment finished!"
+            echo "Docker compose deployment finished!!"
 
 
