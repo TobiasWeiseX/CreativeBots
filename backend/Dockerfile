@@ -4,6 +4,7 @@ RUN apt-get update
 RUN apt-get install -y firefox-esr
 RUN apt-get install -y ffmpeg
 RUN apt-get install -y espeak
+RUN apt-get install -y flite
 
 #RUN curl https://ollama.ai/install.sh | sh
 #RUN ollama run llama2

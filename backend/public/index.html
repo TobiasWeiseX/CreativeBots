@@ -32,6 +32,14 @@
     <script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script> 
     <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
 
+
+
+
+    <script src="https://d3js.org/d3.v3.js"></script>
+    <script src="jsnetworkx.js"></script>
+    <script src="widget.js"></script>
+
+
 </head>
 <body>
 
@@ -324,6 +332,43 @@
     <script>
     //idea: generate proxy opject via openapi.json   api(url).login_now()
 
+    function API(jwt){
+
+        const handler = {
+            get(obj, prop) {
+                //return prop in obj ? obj[prop] : 37;
+
+                //alert(prop);
+
+                (async function f(){
+
+
+                const response = await fetch("/openapi/openapi.json", {
+                    method: "GET",
+                    headers: {
+                        'accept': '*/*'
+                    }
+                });
+
+                let s = await response.json();
+
+                console.log(s);
+
+
+
+                })();
+
+
+
+            },
+        };
+
+        return new Proxy({}, handler);
+    }
+
+    //API().abc;
+
+
     async function login(email, pwd){
         const formData = new FormData();
         formData.append("email", email);
@@ -360,14 +405,14 @@
         }
     }
 
-    async function text2speech(jwt, txt){
+    async function text2speech(txt){
         const formData = new FormData();
         formData.append("text", txt);
         const response = await fetch("/text2speech", {
             method: "POST",
             headers: {
-                'accept': '*/*',
-                'Authorization': 'Bearer ' + jwt
+                'accept': '*/*'//,
+                //'Authorization': 'Bearer ' + jwt
             },
             body: formData
         });
@@ -454,8 +499,27 @@
     }
 
 
+    function parse_html(html){
+        const parser = new DOMParser();
+        return parser.parseFromString(html, 'text/html').documentElement;
+    }
+
+    function parse_xml(xml){
+        const parser = new DOMParser();
+        return parser.parseFromString(xml, 'text/xml').documentElement;
+    }
+
+
+    function parse_dot_lang(txt){
+        let layout = "dot";
+        return Viz(txt, {engine:layout});
+    }
+
+
+
+
     window.onload = async ()=>{
-        //document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
+        document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
 
         //chat
         let user_input = document.getElementById("user_input");
@@ -650,43 +714,112 @@
             set_bot_list(ls);
         };
 
+        function replace_dom_code(f, root_ele){
+            let eles = root_ele.getElementsByTagName("code");
+            for(let i=0; i<eles.length; i++){
+                let ele = eles[i];
 
-        function map_md_code(f, md_txt){
-            let r = "";
-            let text = true;
-            let parts = md_txt.split("```");
-            console.log(parts);
+                //let ele2 = parse_html(f(ele));
+                let ele2 = f(ele);
 
-            for(let s of parts){
-                if(text){
-                    r += s;
-                    text = false;
+                if(ele2){
+                    ele.parentNode.replaceChild(ele2, ele);
                 }
-                else{
-                    r += f(s);
-                    text = true;
-                }
-
             }
-            return r;
+            return root_ele;
         }
 
 
-        function render_code(s){
 
-            console.log(s);
+        function is_graph(obj){
+            if("nodes" in obj){
+                if("edges" in obj || "links" in obj){
+                    return true;
+                }
+            }
+            return false;
+        }
 
-            if(s.startsWith("dot")){
 
-                s = s.replace(/dot\\s/i, "");
-                //let layout = "fdp";
-                let layout = "dot";
-                return `<dot-graph layout="${layout}" style="width:100%; height:100%;">${s}</dot-graph>`;
+        function rename_attr(obj, old, s){
+            if(obj[old]){
+                obj[s] = obj[old];
+                delete obj[old];
+            }
+            return obj;
+        }
 
+
+
+        function translate_graph(obj){
+            let ret_obj = {
+                nodes: [],
+                edges: []
+            };
+
+            obj = rename_attr(obj, "links", "edges");
+
+            if(obj.nodes){
+                if(Array.isArray(obj.nodes)){
+                    for(let node of obj.nodes){
+
+                        if(typeof node === "object"){
+                            if(node.id){
+                                node = rename_attr(node, "name", "label");
+                                ret_obj.nodes.push([node.id, { "radius": 15, "color": "orange"} ]);
+                            }
+                        }
+
+                    }
+                }
             }
 
+            if(obj.edges){
+                if(Array.isArray(obj.edges)){
+                    for(let edge of obj.edges){
+                        if(typeof edge === "object"){
+                            edge = rename_attr(edge, "source", "from");
+                            edge = rename_attr(edge, "target", "to");
+                            if(edge.from){
+                                if(edge.to){
+                                    let e = [edge.from, edge.to, {"color": "black"}];
+                                    ret_obj.edges.push(e);
+                                }
+                            }
+                        }
 
-            return s;
+                    }
+                }
+            }
+
+            console.log(ret_obj);
+            return ret_obj;
+        }
+
+
+        function replace_code(code_ele){
+            let txt = code_ele.innerHTML;
+
+            try{
+                return parse_html(parse_dot_lang(txt));
+            }
+            catch(err){
+                //console.log(err);
+            }
+
+            try{
+                let obj = JSON.parse(txt);
+                if(is_graph(obj)){
+                    let s = `<net-graph style="width:400px; height:350px;">${JSON.stringify(translate_graph(obj))}</net-graph>`;
+                    return parse_html(s);
+                }
+
+            }
+            catch(err){
+                //console.log(err);
+            }
+
+            return code_ele;
         }
 
 
@@ -711,8 +844,9 @@
                     acc_text += "" + token;
                     switch(view_select.value){
                         case "md":
-                            //table_cell.innerHTML = marked.parse(acc_text);
-                            table_cell.innerHTML = marked.parse(map_md_code(render_code, acc_text));
+                            table_cell.innerHTML = "";
+                            let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text)));
+                            table_cell.appendChild(ele);
                             break;
 
                         case "plain":
@@ -727,7 +861,6 @@
                   var audio = new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3');
                   audio.play();
                 }
-
                 */
 
 
@@ -736,34 +869,28 @@
 
 
                 let extra_s = "";
-                let jwt = localStorage.getItem("jwt");
-                if(jwt){
-                    let{file} = await text2speech(jwt, final_answer);
+                let{file} = await text2speech(final_answer);
 
-                    //autoplay controls
-                    extra_s = `
-                        <audio controls>
-                            <source src="${file}" type="audio/mpeg">
-                        </audio>`;
+                //autoplay controls
+                extra_s = `
+                    <audio controls>
+                        <source src="${file}" type="audio/mpeg">
+                    </audio>`;
 
-                    console.log(file);
-                }
-
+                //console.log(file);
 
                 switch(view_select.value){
 
                     case "md":
-                        //table_cell.innerHTML = marked.parse(final_answer) + extra_s;
-
-                        table_cell.innerHTML = marked.parse(map_md_code(render_code, acc_text)) + extra_s;
+                        table_cell.innerHTML = "";
+                        let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text) + extra_s));
+                        table_cell.appendChild(ele);
                         break;
 
-                    default:
+                    case "plain":
                         table_cell.innerHTML = `<pre>${final_answer}</pre>`;
                         break;
                 }
-
-
 
                 scroll_down();
 

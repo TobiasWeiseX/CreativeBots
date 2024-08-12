@@ -28,9 +28,12 @@ from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 from langchain.prompts import PromptTemplate
 
 from langchain_community.llms import Ollama
-from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_community.embeddings import OllamaEmbeddings
+
+#from langchain_community.vectorstores.elasticsearch import ElasticsearchStore  #deprecated
+from langchain_elasticsearch import ElasticsearchStore
+from uuid import uuid4
 
 from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
 from elasticsearch_dsl import Search, A, Document, Date, Integer, Keyword, Float, Long, Text, connections
@@ -53,13 +56,11 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-import pyttsx3
-
 #----------home grown--------------
 #from scraper import WebScraper
 from funcs import group_by
 from elastictools import get_by_id, update_by_id, delete_by_id
-from models import QueryLog, Chatbot, User
+from models import QueryLog, Chatbot, User, Text
 
 
 #LLM_PAYLOAD = int(os.getenv("LLM_PAYLOAD"))
@@ -264,11 +265,6 @@ def handle_message(message):
 
 
 
-
-def create_embedding():
-    pass
-
-
 def hash_password(s: str) -> str:
     return hashlib.md5(s.encode('utf-8')).hexdigest()
 
@@ -333,66 +329,22 @@ def login(form: LoginRequest):
 
 #-----bot routes------
 
+from speech import text_to_speech
+
 
 class GetSpeechRequest(BaseModel):
     text: str = Field(None, description="Some text to convert to mp3")
 
 
 @app.post('/text2speech', summary="", tags=[], security=security)
-@uses_jwt()
-def text2speech(form: GetSpeechRequest, decoded_jwt, user):
-    engine = pyttsx3.init()
-
-    def get_voice(s):
-        for v in engine.getProperty("voices"):
-            if s == v.id:
-                return v
-
-    def set_voice(v):
-        engine.setProperty("voice", v.id)
-
-    def set_volume(n):
-        engine.setProperty('volume', engine.getProperty('volume') + n)
-
-    def set_rate(n):
-        engine.setProperty('rate', engine.getProperty('rate') + n)
-
-    #voices = engine.getProperty('voices')
-    #engine.setProperty('voice', voices[1].id)
-    set_voice(get_voice("english"))
-    set_volume(-5.0)
-    set_rate(-40)
-
-    #espeak -v mb-en1 -s 120 "Hello world"
-    #sudo apt-get install mbrola mbrola-en1
-
-    unix_timestamp = datetime.now().timestamp()
-    file_name = f'speech_{unix_timestamp}.mp3'
-    file_path = f'./public/{file_name}'
-
-    engine.save_to_file(form.text, file_path)
-    engine.runAndWait()
-
-    timeout = 10
-    t = 0
-    step = 0.1
-    while not os.path.isfile(file_path):
-        time.sleep(step)
-        t += step
-        if t > timeout:
-            raise Exception("Timeout(%s s) for creating speech.mp3!" % timeout)
-
-    time.sleep(step)
-
+def text2speech(form: GetSpeechRequest):
+    file_name = text_to_speech(form.text)
 
     #return send_file(file_path, mimetype='audio/mpeg') #, attachment_filename= 'Audiofiles.zip', as_attachment = True)
     return jsonify({
         "status": "success",
         "file": "/" + file_name
     })
-
-
-
 
 
 
@@ -514,9 +466,13 @@ def update_bot(form: UpdateBotRequest, decoded_jwt, user):
     return ""
 
 
+
+
 class AskBotRequest(BaseModel):
     bot_id: str = Field(None, description="The bot's id")
     question: str = Field(None, description="The question the bot should answer")
+
+
 
 @app.get('/bot/ask', summary="", tags=[bot_tag], security=security)
 @uses_jwt()
@@ -524,34 +480,140 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
     """
     Asks a chatbot
     """
-    r = ""
-    for chunk in ask_bot(question=query.question, bot_id=query.bot_id):
-        r += chunk
+    start = datetime.now().timestamp()
+
+    bot_id = query.bot_id
+    prompt = query.question
+
+
+    history = ""
+
+    system_prompt = "Antworte freundlich, mit einer ausführlichen Erklärung, sofern vorhanden auf Basis der folgenden Informationen. Please answer in the language of the question."
+
+
+    prompt_template = system_prompt +"""
+    <ctx>    
+        {context}
+    </ctx>
+    <hs>
+   """+ history +"""
+    </hs>    
+    Question: {question}
+    """
+
+    chat_prompt = PromptTemplate(
+        template=prompt_template, input_variables=["context", "question"]
+    )
+
+    embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
+
+    vector_store = ElasticsearchStore(
+            es_url=app.config['elastic_uri'],
+            index_name= "chatbot_" + bot_id.lower(),
+            distance_strategy="COSINE",
+            embedding=embeddings
+         )
+
+
+
+    bot = Chatbot.get(id=bot_id)
+    llm = Ollama(
+        model=bot.llm_model,
+        base_url="http://ollama:11434"
+    )
+    #query = bot.system_prompt + " " + question
+    #for chunk in llm.stream(query):
+    #    yield chunk
+
+
+    #chunk_size = 1536
+    #chunk_overlap = 200
+    LLM_PAYLOAD=16384
+    CHUNK_SIZE=1536
+
+
+    k = int(LLM_PAYLOAD / CHUNK_SIZE) - 1
+    if (k < 2):
+        k = 2
+
+    #scoredocs = vector_store.similarity_search_with_score(prompt, k=k+10)
+    scoredocs = vector_store.similarity_search_with_score(prompt, k=k+10)
+
+
+    query = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        verbose=False,
+        return_source_documents=True,
+        retriever=vector_store.as_retriever(search_kwargs={'k': k}),
+        chain_type_kwargs={"prompt": chat_prompt}
+    )
+
+    #inputTokens = 0
+    #outputTokens = 0
+
+    #with get_openai_callback() as cb:
+    qares = query.invoke({'query': prompt})
+    qadocs = qares['source_documents'] # STS: deliver doc names and page numbers in the future
+
+    ls = [dict(x) for x in qadocs]
+
+    for qadoc in qadocs:
+        print(qadoc, flush=True)
+
+
+
+    for x in scoredocs:
+        #xs = [x.to_dict() for x in scoredocs]
+        print(x, flush=True)
+
+
+    r = qares['result']
+
+
+
+
+    #r = ""
+    #for chunk in ask_bot(question=query.question, bot_id=query.bot_id):
+    #    r += chunk
+
+
+
+
+    duration = round(datetime.now().timestamp() - start, 2)
+
+    app.logger.info(duration)
 
     return jsonify({
-        "answer": r
+        "answer": r,
+        "duration": str(duration),
+        "docs": ls#,
+        #"score_docs": xs
     })
 
 
+
+
 #-----------------Embedding----------------------
+ESDocument = namedtuple('Document', ['page_content', 'metadata'])
 
 class TrainTextRequest(BaseModel):
-    chatbot_id: str = Field(None, description="The bot's id")
+    bot_id: str = Field(None, description="The bot's id")
     text: str = Field(None, description="Some text")
 
 #TODO: needs to be reimplemented with another mechanism like celeery to manage longer running tasks and give feedback to frontend
 
-@app.post('/bot/train', summary="", tags=[jwt_tag], security=security)
+@app.post('/bot/train/text', summary="", tags=[jwt_tag], security=security)
 @uses_jwt()
-def upload(form: TrainTextRequest, decoded_jwt, nextsearch_user):
+def upload(form: TrainTextRequest, decoded_jwt, user):
     """
     Caution: Long running request!
     """
-    chatbot_id = form.chatbot_id
+    bot_id = form.bot_id
     text = form.text
 
     # validate body
-    if not chatbot_id:
+    if not bot_id:
         return jsonify({
             'status': 'error',
             'message': 'chatbotId is required'
@@ -564,37 +626,53 @@ def upload(form: TrainTextRequest, decoded_jwt, nextsearch_user):
         }), 400
 
 
+    t = Text()
+    t.text = text
+    t.md5 = hashlib.md5(text.encode()).hexdigest()
 
-    ESDocument = namedtuple('Document', ['page_content', 'metadata'])
-
-    txt_id = hashlib.md5(text.encode()).hexdigest()
+    #add meta data
+    t.creation_date = datetime.now()
+    t.creator_id = user.meta.id
+    t.save()
 
     #train with given text
-    ls = []
-    for i, s in enumerate(RecursiveCharacterTextSplitter(chunk_size=1536, chunk_overlap=200, length_function=len).split_text(text)):
-        ls.append(ESDocument(
+    chunk_size = 1536
+    chunk_overlap = 200
+
+    documents = []
+    for i, s in enumerate(RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len).split_text(text)):
+        documents.append(ESDocument(
             page_content=s,
             metadata={
-                "chatbot_id": chatbot_id,
-                "text_id": txt_id
+                "segment_nr": i,
+                "text_id": t.meta.id,
+                "chunk_size": chunk_size,
+                "chunk_overlap": chunk_overlap
             }
         ))
 
+    embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
 
-    def determine_index(chatbot_id: str) -> str:
-        index_prefix = "chatbot"
-        return f"{index_prefix}_{chatbot_id.lower()}"
+    vector_store = ElasticsearchStore(
+        es_url=app.config['elastic_uri'],
+        index_name= "chatbot_" + bot_id.lower(),
+        embedding=embeddings
+    )
 
-
-    #index = determine_index(chatbot_id)
-
-    embedding = OllamaEmbeddings()
-
-    ElasticsearchStore.from_documents(ls, embedding, index_name="embed_text", es_url=app.config['elastic_uri'])
+    uuids = [str(uuid4()) for _ in range(len(documents))]
+    vector_store.add_documents(documents=documents, ids=uuids)
 
     return jsonify({
         "status": "success"
     })
+
+
+
+
+
+
+
+
 
 
 #======== DEBUG routes ============
@@ -646,7 +724,7 @@ def catchAll(path):
 
 def init_indicies():
     # create the mappings in elasticsearch
-    for Index in [QueryLog, Chatbot, User]:
+    for Index in [QueryLog, Chatbot, User, Text]:
         Index.init()
 
 

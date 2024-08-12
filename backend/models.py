@@ -2,14 +2,11 @@ import os
 from elasticsearch_dsl import Document, InnerDoc, Nested, Date, Integer, Keyword, Float, Long, Text, connections, Object, Boolean
 
 
-
-
 class User(Document):
     creation_date = Date()
     email = Keyword()
     password_hash = Text(index=False)
     role = Keyword()
-
 
     #salt = Text(index=False)
     #profileImage = Text(index=False)
@@ -65,6 +62,25 @@ class Chatbot(Document):
         return super(Chatbot, self).save(**kwargs)
 
 
+
+
+
+
+
+class Text(Document):
+    creation_date = Date()
+    creator_id = Keyword()
+    text = Text()
+    md5 = Keyword()
+
+    class Index:
+        name = 'text'
+        settings = {
+            "number_of_shards": 1,
+        }
+
+    def save(self, ** kwargs):
+        return super(Text, self).save(**kwargs)
 
 
 

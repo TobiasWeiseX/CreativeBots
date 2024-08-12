@@ -6,9 +6,12 @@ bs4
 
 elasticsearch
 elasticsearch-dsl
+
 langchain
 langchain-community
 tiktoken
+langchain_ollama
+langchain-elasticsearch
 
 pydantic
 

@@ -14,18 +14,18 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         #script_stop: true
+        #requires stored git password: git config credential.helper store
         script: |
-            whoami
-            ls
             cd Ollama-Bot/deployment
             docker-compose down
             git pull
-            echo "Git pull finishes!"
+            echo "============ Git pull finished! ========="
             docker-compose build
-            echo "Image build finishes!"
+            echo "============= Image build finishes! =============="
             docker-compose push
-            echo "Image push finishes!"
+            echo "============== Image push finishes! ==============="
             docker-compose up -d
-            echo "Docker compose deployment finished!!"
-
+            echo "========== Docker compose deployment finished! =============="
+            docker rmi $(docker images -f "dangling=true" -q)
+            echo "========== Docker dangling images cleanup finished! =============="
 
