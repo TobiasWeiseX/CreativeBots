@@ -6,7 +6,55 @@ jobs:
     name: Redploy-App-on-self-via-SSH
     runs-on: ubuntu-latest
     steps:
-    - name: executing remote ssh commands using password
+    - name: Down app, git pull and build image
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        script_stop: true
+        #requires stored git password: git config credential.helper store
+        script: |
+            cd Ollama-Bot/deployment
+            docker-compose down
+            git pull
+            echo "============ Git pull finished! ========="
+            echo '${{ vars.ENV }}' > .env
+            echo "============ Env creation finished! ========="
+
+
+    - name: Build image
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        script_stop: true
+        #requires stored git password: git config credential.helper store
+        script: |
+            cd Ollama-Bot/deployment
+            docker-compose build
+            echo "============= Image build finishes! =============="
+
+
+    - name: Push image
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        script_stop: true
+        #requires stored git password: git config credential.helper store
+        script: |
+            cd Ollama-Bot/deployment
+            docker-compose push
+            echo "============== Image push finishes! ==============="
+
+
+    - name: Deploy app
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -17,17 +65,28 @@ jobs:
         #requires stored git password: git config credential.helper store
         script: |
             cd Ollama-Bot/deployment
-            docker-compose down
-            git pull
-            echo "============ Git pull finished! ========="
-            echo '${{ vars.ENV }}' > .env
-            echo "============ Env creation finished! ========="
-            docker-compose build
-            echo "============= Image build finishes! =============="
-            docker-compose push
-            echo "============== Image push finishes! ==============="
             docker-compose up -d
             echo "========== Docker compose deployment finished! =============="
+
+
+    - name: Clean up
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        #script_stop: true
+        #requires stored git password: git config credential.helper store
+        script: |
             docker rmi $(docker images -f "dangling=true" -q)
             echo "========== Docker dangling images cleanup finished! =============="
+
+
+
+
+
+
+
+
 
