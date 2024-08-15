@@ -6,7 +6,7 @@ jobs:
     name: Redploy-App-on-self-via-SSH
     runs-on: ubuntu-latest
     steps:
-    - name: Down app, git pull and build image
+    - name: Down app and git pull
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
