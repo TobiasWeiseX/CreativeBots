@@ -50,6 +50,7 @@ jobs:
         #requires stored git password: git config credential.helper store
         script: |
             cd Ollama-Bot/deployment
+            docker login --username="${{ secrets.REGUSER }}" --password="${{ secrets.REGPWD }}" ${{ vars.REGISTRY }}
             docker-compose push
             echo "============== Image push finishes! ==============="
 
