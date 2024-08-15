@@ -11,7 +11,7 @@ import os, sys, json, time
 import os.path
 from typing import Any, Tuple, List, Dict, Any, Callable, Optional
 from datetime import datetime, date
-from collections import namedtuple
+#from collections import namedtuple
 import hashlib, traceback, logging
 from functools import wraps
 import base64
@@ -21,7 +21,7 @@ import base64
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
-import tiktoken
+#import tiktoken
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
@@ -60,13 +60,13 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 #from scraper import WebScraper
 from funcs import group_by
 from elastictools import get_by_id, update_by_id, delete_by_id
-from models import QueryLog, Chatbot, User, Text
+from models import init_indicies, QueryLog, Chatbot, User, Text
 
 
-#LLM_PAYLOAD = int(os.getenv("LLM_PAYLOAD"))
-#CHUNK_SIZE = int(os.getenv("CHUNK_SIZE"))
+from chatbot import ask_bot, train_text
+from speech import text_to_speech
+
 BOT_ROOT_PATH = os.getenv("BOT_ROOT_PATH")
-
 
 # JWT Bearer Sample
 jwt = {
@@ -136,9 +136,6 @@ def uses_jwt(required=True):
                 }), 401
 
             try:
-                #user = get_by_id(client, index="user", id_field_name="email", id_value=data["email"])[0]
-                #response = Search(using=client, index="user").filter("term", **{"email": data["email"]})[0:5].execute()
-                #response = Search(index="user").filter("term", **{"email": data["email"]})[0:5].execute()
                 response = User.search().filter("term", **{"email": data["email"]})[0:5].execute()
                 for hit in response:
                     user = hit
@@ -158,10 +155,6 @@ def uses_jwt(required=True):
         return decorated_route
 
     return non_param_deco
-
-
-
-
 
 
 def create_key(salt: str, user_email: str) -> Fernet:
@@ -184,18 +177,12 @@ def create_key(salt: str, user_email: str) -> Fernet:
     return Fernet(key)
 
 
-
-
-#app = Flask(__name__)
-
-
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['CORS_METHODS'] = ["GET,POST,OPTIONS,DELETE,PUT"]
 
 
 env_to_conf = {
-    "BACKEND_INTERNAL_URL": "api_url",
     "ELASTIC_URI": "elastic_uri",
     "SECRET": "jwt_secret"
 }
@@ -209,20 +196,6 @@ for env_key, conf_key in env_to_conf.items():
         sys.exit(1)
     else:
         app.config[conf_key] = x
-
-
-#TODO add history
-
-def ask_bot(question, bot_id):
-    bot = Chatbot.get(id=bot_id)
-    llm = Ollama(
-        model=bot.llm_model,
-        base_url="http://ollama:11434"
-    )
-    query = bot.system_prompt + " " + question
-    for chunk in llm.stream(query):
-        yield chunk
-
 
 
 
@@ -271,13 +244,10 @@ def hash_password(s: str) -> str:
 
 #======================= TAGS =============================
 
-jwt_tag = Tag(name='JWT', description='Requires a valid JSON Web Token')
 not_implemented_tag = Tag(name='Not implemented', description='Functionality not yet implemented beyond an empty response')
 debug_tag = Tag(name='Debug', description='Debug')
-
-
 bot_tag = Tag(name='Bot', description='Bot')
-
+user_tag = Tag(name='User', description='User')
 
 #==============Routes===============
 
@@ -286,7 +256,7 @@ class LoginRequest(BaseModel):
     password: str = Field(None, description='A short text by the user explaining the rating.')
 
 
-@app.post('/login', summary="", tags=[], security=security)
+@app.post('/user/login', summary="", tags=[user_tag])
 def login(form: LoginRequest):
     """
     Get your JWT to verify access rights
@@ -327,9 +297,66 @@ def login(form: LoginRequest):
                 }), 400
 
 
-#-----bot routes------
 
-from speech import text_to_speech
+
+from mail import send_mail
+
+class RegisterRequest(BaseModel):
+    email: str = Field(None, description='The users E-Mail that serves as nick too.')
+    password: str = Field(None, description='A short text by the user explaining the rating.')
+
+
+@app.post('/user/register', summary="", tags=[user_tag])
+def register(form: RegisterRequest):
+    """
+    Register an account
+    """
+
+    if form.email is None or form.password is None:
+        msg = "Parameters missing!"
+        app.logger.error(msg)
+        return jsonify({
+            'status': 'error',
+            'message': msg
+        }), 400
+
+
+    if User.get(id=form.email, ignore=404) is not None:
+        return jsonify({
+            'status': 'error',
+            "message": "User with that e-mail address already exists!"
+        })
+
+    else:
+        user = User(meta={'id': form.email})
+        user.creation_date = datetime.now()
+        user.email = form.email
+        user.password_hash = hash_password(form.password + form.email)
+        user.role = "User"
+        user.isEmailVerified = False
+        user.save()
+
+        msg = """
+        <h1>Verify E-Mail</h1>
+
+        Hi!
+
+        Please click on the following link to verify your e-mail:
+
+
+        <a href="http://127.0.0.1:5000/">Click here!</a>
+
+        """
+
+        send_mail(user.email, "User registration @ Creative Bots", "Creative Bots", msg)
+
+        return jsonify({
+            'status': 'success'
+        })
+
+
+
+#-----bot routes------
 
 
 class GetSpeechRequest(BaseModel):
@@ -450,7 +477,10 @@ def delete_bot(form: DeleteBotRequest, decoded_jwt, user):
     """
     bot = Chatbot.get(id=form.id)
     bot.delete()
-    return ""
+
+    return jsonify({
+        "status": "success"
+    })
 
 
 class UpdateBotRequest(BaseModel):
@@ -463,14 +493,22 @@ def update_bot(form: UpdateBotRequest, decoded_jwt, user):
     Changes a chatbot
     """
 
-    return ""
-
+    return jsonify({
+        "status": "success"
+    })
 
 
 
 class AskBotRequest(BaseModel):
     bot_id: str = Field(None, description="The bot's id")
     question: str = Field(None, description="The question the bot should answer")
+
+
+
+
+from langchain.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
 
 
 
@@ -486,23 +524,18 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
     prompt = query.question
 
 
-    history = ""
+    system_prompt = (
+        "Antworte freundlich, mit einer ausführlichen Erklärung, sofern vorhanden auf Basis der folgenden Informationen. Please answer in the language of the question."
+        "\n\n"
+        "{context}"
+    )
 
-    system_prompt = "Antworte freundlich, mit einer ausführlichen Erklärung, sofern vorhanden auf Basis der folgenden Informationen. Please answer in the language of the question."
 
-
-    prompt_template = system_prompt +"""
-    <ctx>    
-        {context}
-    </ctx>
-    <hs>
-   """+ history +"""
-    </hs>    
-    Question: {question}
-    """
-
-    chat_prompt = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
+    ch_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
     )
 
     embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
@@ -515,69 +548,39 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
          )
 
 
-
     bot = Chatbot.get(id=bot_id)
     llm = Ollama(
         model=bot.llm_model,
         base_url="http://ollama:11434"
     )
-    #query = bot.system_prompt + " " + question
-    #for chunk in llm.stream(query):
-    #    yield chunk
+
+    k = 4
+    scoredocs = vector_store.similarity_search_with_score(prompt, k=k)
+
+    retriever = vector_store.as_retriever()
+    question_answer_chain = create_stuff_documents_chain(llm, ch_prompt)
+    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
 
-    #chunk_size = 1536
-    #chunk_overlap = 200
-    LLM_PAYLOAD=16384
-    CHUNK_SIZE=1536
-
-
-    k = int(LLM_PAYLOAD / CHUNK_SIZE) - 1
-    if (k < 2):
-        k = 2
-
-    #scoredocs = vector_store.similarity_search_with_score(prompt, k=k+10)
-    scoredocs = vector_store.similarity_search_with_score(prompt, k=k+10)
-
-
-    query = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        verbose=False,
-        return_source_documents=True,
-        retriever=vector_store.as_retriever(search_kwargs={'k': k}),
-        chain_type_kwargs={"prompt": chat_prompt}
-    )
-
-    #inputTokens = 0
-    #outputTokens = 0
-
-    #with get_openai_callback() as cb:
-    qares = query.invoke({'query': prompt})
-    qadocs = qares['source_documents'] # STS: deliver doc names and page numbers in the future
-
-    ls = [dict(x) for x in qadocs]
-
-    for qadoc in qadocs:
-        print(qadoc, flush=True)
+    r = ""
+    #for chunk in rag_chain.stream({"input": "What is Task Decomposition?"}):
+    for chunk in rag_chain.stream({"input": prompt}):
+        print(chunk, flush=True)
+        if "answer" in chunk:
+            r += chunk["answer"]
 
 
 
-    for x in scoredocs:
-        #xs = [x.to_dict() for x in scoredocs]
-        print(x, flush=True)
-
-
-    r = qares['result']
-
-
-
-
-    #r = ""
     #for chunk in ask_bot(question=query.question, bot_id=query.bot_id):
     #    r += chunk
 
 
+
+    xs = []
+    for doc, score in scoredocs:
+        #print(doc.__dict__, flush=True)
+        #print(doc, flush=True)
+        xs.append([dict(doc), score])
 
 
     duration = round(datetime.now().timestamp() - start, 2)
@@ -587,23 +590,22 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
     return jsonify({
         "answer": r,
         "duration": str(duration),
-        "docs": ls#,
-        #"score_docs": xs
+        #"docs": ls#,
+        "score_docs": xs
     })
 
 
 
 
 #-----------------Embedding----------------------
-ESDocument = namedtuple('Document', ['page_content', 'metadata'])
+#ESDocument = namedtuple('Document', ['page_content', 'metadata'])
 
 class TrainTextRequest(BaseModel):
     bot_id: str = Field(None, description="The bot's id")
     text: str = Field(None, description="Some text")
 
-#TODO: needs to be reimplemented with another mechanism like celeery to manage longer running tasks and give feedback to frontend
 
-@app.post('/bot/train/text', summary="", tags=[jwt_tag], security=security)
+@app.post('/bot/train/text', summary="", tags=[bot_tag], security=security)
 @uses_jwt()
 def upload(form: TrainTextRequest, decoded_jwt, user):
     """
@@ -626,86 +628,11 @@ def upload(form: TrainTextRequest, decoded_jwt, user):
         }), 400
 
 
-    t = Text()
-    t.text = text
-    t.md5 = hashlib.md5(text.encode()).hexdigest()
-
-    #add meta data
-    t.creation_date = datetime.now()
-    t.creator_id = user.meta.id
-    t.save()
-
-    #train with given text
-    chunk_size = 1536
-    chunk_overlap = 200
-
-    documents = []
-    for i, s in enumerate(RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len).split_text(text)):
-        documents.append(ESDocument(
-            page_content=s,
-            metadata={
-                "segment_nr": i,
-                "text_id": t.meta.id,
-                "chunk_size": chunk_size,
-                "chunk_overlap": chunk_overlap
-            }
-        ))
-
-    embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
-
-    vector_store = ElasticsearchStore(
-        es_url=app.config['elastic_uri'],
-        index_name= "chatbot_" + bot_id.lower(),
-        embedding=embeddings
-    )
-
-    uuids = [str(uuid4()) for _ in range(len(documents))]
-    vector_store.add_documents(documents=documents, ids=uuids)
+    train_text(bot_id, text)
 
     return jsonify({
         "status": "success"
     })
-
-
-
-
-
-
-
-
-
-
-#======== DEBUG routes ============
-
-@app.get('/debug/schema', summary="", tags=[debug_tag])
-def get_schema():
-    """
-
-    """
-    #chatbots = query.chatbots
-    #client = Elasticsearch(app.config['elastic_uri'])
-
-    def simplify_properties(d):
-        new_d = {}
-        for field, d3 in d["properties"].items():
-            if "type" in d3:
-                new_d[field] = d3["type"]
-            elif "properties" in d3:
-                new_d[field] = simplify_properties(d3)
-        return new_d
-
-
-    def get_type_schema(client: Elasticsearch):
-        d = client.indices.get(index="*").body
-        new_d = {}
-        for index, d2 in d.items():
-            new_d[index] = simplify_properties(d2["mappings"])
-        return new_d
-
-    return jsonify( get_type_schema(client) )
-
-
-#TODO: route that takes a schema json and compares to internal structure and returns boolean
 
 
 #-------- non api routes -------------
@@ -722,10 +649,18 @@ def catchAll(path):
 
 
 
-def init_indicies():
-    # create the mappings in elasticsearch
-    for Index in [QueryLog, Chatbot, User, Text]:
-        Index.init()
+#def init_indicies():
+#    # create the mappings in elasticsearch
+#    for Index in [QueryLog, Chatbot, User, Text]:
+#        Index.init()
+
+
+def create_user(email, password, role="user", verified=False):
+    user = User(meta={'id': email}, email=email, password_hash=hash_password(password + email), role=role)
+    user.creation_date = datetime.now()
+    user.isEmailVerified = verified
+    user.save()
+    return user
 
 
 def create_default_users():
@@ -735,18 +670,16 @@ def create_default_users():
     if default_users:
         for (email, pwd, role) in json.loads(default_users):
             if len(get_by_id(client, index="user", id_field_name="email", id_value=email)) == 0:
-                user = User(email=email, password_hash=hash_password(pwd + email), role=role)
-                user.creation_date = datetime.now()
-                user.save()
+                create_user(email, pwd, role=role, verified=True)
 
 
+
+import requests
 
 
 if __name__ == '__main__':
 
     #TODO: implement some kind of logging mechanism
-    #logging.basicConfig(filename='record.log', level=logging.DEBUG)
-    #logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.WARN)
 
     """
@@ -761,32 +694,26 @@ if __name__ == '__main__':
         app.logger.addHandler(handler)
     """
 
-    connections.create_connection(hosts=app.config['elastic_uri'])
-
-    #client = Elasticsearch(app.config['elastic_uri'])
-    #client = Elasticsearch(hosts=[{"host": "elasticsearch"}], retry_on_timeout=True)
-    client = Elasticsearch(app.config['elastic_uri'], retry_on_timeout=True)
-
-
     #TODO: find a clean way to wait without exceptions!
     #Wait for elasticsearch to start up!
     i = 1
+
     while True:
         try:
             #client = Elasticsearch(app.config['elastic_uri'])
-
-            client.cluster.health(wait_for_status='yellow')
+            connections.create_connection(hosts=app.config['elastic_uri'])
+            connections.get_connection().cluster.health(wait_for_status='yellow')
+            init_indicies()
             print("Elasticsearch found! Run Flask-app!", flush=True)
             break
-        except ConnectionError:
+        except:
+            #except ConnectionError:
             i *= 1.5
             time.sleep(i)
             print("Elasticsearch not found! Wait %s seconds!" % i, flush=True)
 
 
-    # Display cluster health
-    #app.logger.debug(connections.get_connection().cluster.health())
-
+    connections.create_connection(hosts=app.config['elastic_uri'], request_timeout=60)
 
     init_indicies()
     create_default_users()

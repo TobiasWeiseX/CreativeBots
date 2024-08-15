@@ -3,34 +3,36 @@ networks:
   llm_network:
     driver: bridge
 services:
-  nginx:
-    container_name: ${APP_PREFIX}_reverseproxy
-    image: nginxinc/nginx-unprivileged #:1.25-alpine
-    restart: always
-    ports:
-      - "81:8080"
-    volumes:
-      - type: bind
-        source: ./nginx.conf
-        target: /etc/nginx/nginx.conf
-    networks:
-      - llm_network
-  #minio:
-  #  container_name: ${APP_PREFIX}_minio
-  #  #image: docker.io/bitnami/minio #:2022
-  #  image: minio/minio
+
+  #nginx:
+  #  container_name: ${APP_PREFIX}_reverseproxy
+  #  image: nginxinc/nginx-unprivileged #:1.25-alpine
+  #  restart: always
   #  ports:
-  #    - '9000:9000'
-  #    - '9001:9001'
+  #    - "81:8080"
+  #  volumes:
+  #    - type: bind
+  #      source: ./nginx.conf
+  #      target: /etc/nginx/nginx.conf
   #  networks:
   #    - llm_network
-  #  volumes:
-  #    - 'minio_data:/data'
-  #  environment:
-  #    - MINIO_ROOT_USER=root
-  #    - MINIO_ROOT_PASSWORD=rootrootroot
-  #    - MINIO_DEFAULT_BUCKETS=defaultbucket
-  #  command: server --console-address ":9001" /data
+
+  minio:
+    container_name: ${APP_PREFIX}_minio
+    #image: docker.io/bitnami/minio #:2022
+    image: minio/minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    networks:
+      - llm_network
+    volumes:
+      - 'minio_data:/data'
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=rootrootroot
+      - MINIO_DEFAULT_BUCKETS=defaultbucket
+    command: server --console-address ":9001" /data
 
   elasticsearch:
     container_name: ${APP_PREFIX}_elasticsearch
@@ -102,6 +104,7 @@ services:
   #  ports:
   #    - "3000:3000"
   #  build: ./frontend
+
   backend:
     container_name: ${APP_PREFIX}_backend
     image: registry.tobiasweise.dev/${APP_PREFIX}-python-backend
@@ -110,6 +113,7 @@ services:
       - "5000:5000"
     env_file:
       - ../backend/backend.env
+      - .env
     build: ../backend
     networks:
       - llm_network

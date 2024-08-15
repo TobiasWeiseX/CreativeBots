@@ -138,6 +138,15 @@ class QueryLog(Document):
 
 
 
+
+def init_indicies():
+    # create the mappings in elasticsearch
+    for Index in [QueryLog, Chatbot, User, Text]:
+        Index.init()
+
+
+
+
 if __name__ == "__main__":
     elastic_uri = os.getenv("ELASTIC_URI")
     #elastic_uri = "http://localhost:9200"

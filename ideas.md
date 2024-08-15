@@ -3,10 +3,7 @@
 
 # Ideas
 
-
 https://favtutor.com/articles/meta-llama-3-jailbreak/
-
-
 
 ## Knowledge graph creation
 

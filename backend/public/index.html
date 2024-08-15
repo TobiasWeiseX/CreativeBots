@@ -6,13 +6,6 @@
     <link rel="icon" href="favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-
-
-
-    <!--
-    <script src="tabs.js"></script>
-    -->
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
 
@@ -20,28 +13,81 @@
     <!--
     load the following async:?
     -->
-    <script src="viz.js"></script>
-    <script src="viz_widget.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script async="async" src="viz.js"></script>
+    <script async="async" src="viz_widget.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
     X3DOM_SECURITY_OFF = true;
     </script>
-    <script type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script> 
-    <link rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'></link>
+    <script async="async" type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script> 
+    <link async="async" rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'>
 
 
 
-
-    <script src="https://d3js.org/d3.v3.js"></script>
-    <script src="jsnetworkx.js"></script>
-    <script src="widget.js"></script>
+    <script async="async" src="https://d3js.org/d3.v3.js"></script>
+    <script async="async" src="jsnetworkx.js"></script>
+    <script async="async" src="widget.js"></script>
 
 
 </head>
 <body>
+
+
+    <!-- The Register Modal -->
+    <div class="modal fade" id="registerModal">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+          <!-- Register Modal Header -->
+          <div class="modal-header">
+            <h4 class="modal-title">Register account</h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <form>
+
+              <!-- Register Modal body -->
+              <div class="modal-body">
+
+                <div class="mb-3 mt-3">
+                    <label for="register_email" class="form-label">Email:</label>
+                    <input type="email" class="form-control" id="register_email" placeholder="Enter email" name="email">
+                </div>
+
+                <div class="mb-3">
+                    <label for="register_password" class="form-label">Password:</label>
+                    <input type="password" class="form-control" id="register_password" placeholder="Enter password" name="pswd">
+                </div>
+
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" onclick="show_register_password()">
+                  <label class="form-check-label">Show Password</label>
+                </div> 
+
+                <script>
+                function show_register_password() {
+                    let ele = document.getElementById("register_password");
+                    if(ele.type === "password"){
+                        ele.type = "text";
+                    } else {
+                        ele.type = "password";
+                    }
+                }
+                </script>
+             </div>
+             <!-- Login Modal footer -->
+             <div class="modal-footer">
+                <button id="submit_register_btn" type="button" class="btn btn-primary">Register</button>
+             </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
 
     <!-- The Login Modal -->
     <div class="modal fade" id="myModal">
@@ -70,12 +116,12 @@
                 </div>
 
                 <div class="form-check">
-                  <input type="checkbox" class="form-check-input" onclick="show_password()">
+                  <input type="checkbox" class="form-check-input" onclick="show_login_password()">
                   <label class="form-check-label">Show Password</label>
                 </div> 
 
                 <script>
-                function show_password() {
+                function show_login_password() {
                     let ele = document.getElementById("pass");
                     if(ele.type === "password"){
                         ele.type = "text";
@@ -87,13 +133,15 @@
              </div>
              <!-- Login Modal footer -->
              <div class="modal-footer">
-                <button id="submit_login_btn" type="button" class="btn btn-primary">Submit</button>
+                <button id="submit_login_btn" type="button" class="btn btn-primary">Login</button>
              </div>
           </form>
 
         </div>
       </div>
     </div>
+
+
 
 
     <div class="container-fluid p-3 bg-primary text-white text-center">
@@ -111,17 +159,11 @@
           </div>
           <div class="offcanvas-body">
 
-            <!-- Button to Open the Modal -->
+
+            <!-- Buttons to Open the Modal -->
+            <button id="register_btn" type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</button>
             <button id="login_btn" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal">Login</button>
-
-            <!--
-            <button id="login_btn" type="button" class="btn btn-primary text-white">Login</button>
-            -->
-
-
             <button id="logout_btn" type="button" class="btn btn-danger text-white">Logout</button>
-
-
 
             <br>
 
@@ -130,22 +172,10 @@
 
             <br>
 
-
-            <!--
-            <label for="bots">Choose a bot:</label>
-            <select name="bots" id="bot_select" class="form-select"></select> 
-
-            <br>
-            -->
-
-
             <label for="views">Choose a view:</label>
             <select name="views" id="view_select" class="form-select">
               <option value="md">Markdown</option>
               <option value="plain">Plain text</option>
-            <!--
-              <option value="dot">Dot-Lang</option>
-            -->
             </select> 
 
           </div>
@@ -296,6 +326,86 @@
                 <br>
 
 
+                <form>
+
+
+                <label for="bot_name" class="form-label">Name:</label>
+                <input type="bot_name" class="form-control" id="bot_name" placeholder="MyNewBot">
+
+                <br>
+
+                <label for="bot_visibility">Visibility:</label>
+                <select name="bot_visibility" id="bot_visibility_select" class="form-select">
+                  <option value="public">Public to All</option>
+                  <option value="private">Private to User</option>
+                </select> 
+
+
+                <br>
+
+                <label for="bot_description">Description:</label>
+                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A bot that cares."></textarea>
+
+                <br>
+
+                <label for="bot_llm">Language model:</label>
+                <select name="bot_llm" id="bot_llm_select" class="form-select">
+                  <option value="llama3">Llama3</option>
+                </select> 
+
+                <br>
+
+                <label for="bot_system_prompt">System prompt:</label>
+                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="Answer all questions short and sweet!"></textarea>
+
+
+                <br>
+
+                <label for="avatar">Text documents:</label>
+                <input disabled class="form-control" type="file" id="avatar" name="avatar" multiple accept=".pdf,.xml,.txt,.md,.doc,.docx,.odt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+
+
+                <br>
+
+                <label for="url">Links:</label>
+                <input disabled class="form-control" type="url" name="url" id="url" placeholder="https://example.com" pattern="https://.*" size="30" required />
+
+                <hr>
+
+                <div class="row">
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col"></div>
+                      <div class="col">
+                        <button id="change_bot_btn" disabled type="button" class="btn btn-primary text-white">Change bot</button>
+                     </div>
+                </div>
+
+                <br>
+
+                <!-- alerts -->
+
+                <div id="change_bot_alert_spawn"></div>
+
+               <!-- 
+                <div id="alert_bot_created" style="display: none;" class="alert alert-success alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Success!</strong> Bot created!
+                </div>
+
+
+                <div id="alert_not_bot_created" style="display: none;" class="alert alert-danger alert-dismissible fade show">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <strong>Couldn't create bot!</strong> Something killed that bot!
+                </div>
+                -->
+
+                </form>
+
+
+
+
             </div>
         </div>
 
@@ -329,575 +439,6 @@
         </div>
     </footer>
 
-    <script>
-    //idea: generate proxy opject via openapi.json   api(url).login_now()
-
-    function API(jwt){
-
-        const handler = {
-            get(obj, prop) {
-                //return prop in obj ? obj[prop] : 37;
-
-                //alert(prop);
-
-                (async function f(){
-
-
-                const response = await fetch("/openapi/openapi.json", {
-                    method: "GET",
-                    headers: {
-                        'accept': '*/*'
-                    }
-                });
-
-                let s = await response.json();
-
-                console.log(s);
-
-
-
-                })();
-
-
-
-            },
-        };
-
-        return new Proxy({}, handler);
-    }
-
-    //API().abc;
-
-
-    async function login(email, pwd){
-        const formData = new FormData();
-        formData.append("email", email);
-        formData.append("password", pwd);
-        const response = await fetch("/login", {
-            method: "POST",
-            headers: {
-                'accept': '*/*'
-            },
-            body: formData
-        });
-        return response.json();
-    }
-
-    async function get_bots(jwt){
-        if(jwt){
-            const response = await fetch("/bot", {
-                method: "GET",
-                headers: {
-                    'accept': '*/*',
-                    'Authorization': 'Bearer ' + jwt
-                }
-            });
-            return response.json();
-        }
-        else{
-            const response = await fetch("/bot", {
-                method: "GET",
-                headers: {
-                    'accept': '*/*'
-                }
-            });
-            return response.json();
-        }
-    }
-
-    async function text2speech(txt){
-        const formData = new FormData();
-        formData.append("text", txt);
-        const response = await fetch("/text2speech", {
-            method: "POST",
-            headers: {
-                'accept': '*/*'//,
-                //'Authorization': 'Bearer ' + jwt
-            },
-            body: formData
-        });
-        return response.json();
-    }
-
-    async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
-        const formData = new FormData();
-        formData.append("name", name);
-        formData.append("visibility", visibility);
-        formData.append("description", description);
-        formData.append("llm_model", llm);
-        formData.append("system_prompt", sys_prompt);
-
-        const response = await fetch("/bot", {
-            method: "POST",
-            headers: {
-                'accept': '*/*',
-                'Authorization': 'Bearer ' + jwt
-            },
-            body: formData
-        });
-        return response.json();
-    }
-
-    async function* ask_question(bot_id, question, system_prompt=""){
-        let socket;
-        let room = null;
-        //let evt_listener = null;
-        let dom_ele = document.head;
-        const evt_name = "tokenstream";
-        try{
-            socket = io();
-            socket.on('backend response', data =>{
-                console.log(data);
-                if(data.room){
-                    room = data.room;
-                    socket.off('backend response');
-                }
-            });
-
-            let done = false;
-            //let last_timestamp = null;
-
-            function f(){
-                return new Promise((resolve,reject)=>{
-                    let evt_listener = evt => {
-                        //if(evt.timeStamp !== last_timestamp){
-                        //last_timestamp = evt.timeStamp;
-                        dom_ele.removeEventListener(evt_name, evt_listener);
-                        resolve(evt.detail);
-                        //}
-                        //last_timestamp = evt.timeStamp;
-                    };
-                    dom_ele.addEventListener(evt_name, evt_listener);
-                });
-            }
-
-            socket.on('backend token', obj =>{
-                if(!obj.done){
-                    dom_ele.dispatchEvent(new CustomEvent(evt_name, { detail: obj.data }));
-                }
-                else{
-                    done = true;
-                    socket.off('backend token');
-                    dom_ele.dispatchEvent(new CustomEvent(evt_name, { detail: "" }));
-                }
-            });
-            socket.emit('client message', {question, system_prompt, bot_id, room});
-            while(!done){
-                yield f();
-            }
-            return;
-        }
-        catch(e){
-            console.error(e);
-            return;
-        }
-        finally{
-            socket.emit('end');
-            socket.close();
-            return;
-        }
-    }
-
-
-    function parse_html(html){
-        const parser = new DOMParser();
-        return parser.parseFromString(html, 'text/html').documentElement;
-    }
-
-    function parse_xml(xml){
-        const parser = new DOMParser();
-        return parser.parseFromString(xml, 'text/xml').documentElement;
-    }
-
-
-    function parse_dot_lang(txt){
-        let layout = "dot";
-        return Viz(txt, {engine:layout});
-    }
-
-
-
-
-    window.onload = async ()=>{
-        document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
-
-        //chat
-        let user_input = document.getElementById("user_input");
-        let system_prompt = document.getElementById("system_prompt");
-
-        let log = document.getElementById("log");
-        let submit_btn = document.getElementById("submit_btn");
-        let scroll_div = document.getElementById("scroll_div");
-
-        //settings
-        let bot_select = document.getElementById("bot_select");
-        let view_select = document.getElementById("view_select");
-        let login_btn = document.getElementById("login_btn");
-        let logout_btn = document.getElementById("logout_btn");
-        let submit_login_btn = document.getElementById("submit_login_btn");
-
-        //create bot form
-        let create_bot_btn = document.getElementById("create_bot_btn");
-        let bot_name = document.getElementById("bot_name");
-        let bot_visibility_select = document.getElementById("bot_visibility_select");
-        let bot_description = document.getElementById("bot_description");
-        let bot_llm_select = document.getElementById("bot_llm_select");
-        let bot_system_prompt = document.getElementById("bot_system_prompt");
-        let alert_spawn = document.getElementById("alert_spawn");
-
-        let answer_count = 0;
-
-        function log_msg(nick, msg){
-            console.log(nick + ": " + msg);
-            log.innerHTML += "<tr><td><b>" + nick + "</b>:</td><td>" + msg + "</td></tr>";
-        }
-
-        function scroll_down(){
-            scroll_div.scrollTop = scroll_div.scrollHeight;
-        }
-
-        function get_bot_name(){
-            let i = bot_select.selectedIndex;
-            if(i===-1) return "Bot";
-            return bot_select.options[i].text;
-        }
-
-        function set_bot_list(ls){
-            if(ls.length === 0){
-                console.error("No bots found!");
-            }
-            else{
-                bot_select.innerHTML = ls.map(bot => `<option value="${bot.id}">${bot.name}</option>`).join("");
-            }
-        }
-
-        function clean_bot_create_form(){
-            bot_name.value = "";
-            bot_description.value = "";
-            bot_system_prompt.value = "";
-        }
-
-        function alert_bot_creation(success){
-            let msg, s;
-            if(success){
-                s = "success";
-                msg = "<strong>Success!</strong> Bot created!";
-            }
-            else{
-                s = "danger";
-                msg = "<strong>Couldn't create bot!</strong> Something killed that bot!";
-            }
-            alert_spawn.innerHTML = `
-            <div class="alert alert-${s} alert-dismissible fade show">
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                ${msg}
-            </div>
-            `;
-        }
-
-        function set_ui_loggedin(b){
-            if(b){
-                //enable create bot button
-                create_bot_btn.removeAttribute("disabled");
-                login_btn.style.display = "none";
-                logout_btn.style.display = "block";
-            }
-            else{
-                //disable create bot button
-                create_bot_btn.setAttribute("disabled", "disabled");
-                logout_btn.style.display = "none";
-                login_btn.style.display = "block";
-            }
-        }
-
-        //init: are we logged in on start?
-        let jwt = localStorage.getItem("jwt");
-        if(jwt === null){
-            let ls = await get_bots();
-            set_bot_list(ls);
-            set_ui_loggedin(false);
-        }
-        else{
-            let ls = await get_bots(jwt);
-            set_bot_list(ls);
-            set_ui_loggedin(true);
-        }
-
-        //init chat
-        log_msg(get_bot_name(), "Ask a question!");
-
-        //-----init buttons------------
-        create_bot_btn.onclick = async ()=>{
-            let jwt = localStorage.getItem("jwt");
-            if(jwt){
-                let name = bot_name.value;
-                let visibility = bot_visibility_select.value;
-                let description = bot_description.value;
-                let llm = bot_llm_select.value;
-                let sys_prompt = bot_system_prompt.value;
-
-                if(!name){
-                    bot_name.focus();
-                    return;
-                }
-
-                if(!sys_prompt){
-                    bot_system_prompt.focus();
-                    return;
-                }
-
-                try{
-                    let {bot_id} = await create_bot(jwt, name, visibility, description, llm, sys_prompt);
-                    alert_bot_creation(true);
-                    clean_bot_create_form();
-
-                    //update bot list
-                    let ls = await get_bots(jwt);
-                    set_bot_list(ls);
-
-                }
-                catch(err){
-                    console.error(err);
-                    console.error("Couldn't create bot!");
-                    alert_bot_creation(false);
-                }
-            }
-        };
-
-        submit_login_btn.onclick = async ()=>{
-            //let nick = prompt("Please enter your email");
-            //let pwd = prompt("Please enter your password");
-
-            let nick_ele = document.getElementById("email");
-            let pwd_ele = document.getElementById("pass");
-
-            if(!nick_ele.value){
-                nick_ele.focus();
-                return;
-            }
-
-            if(!pwd_ele.value){
-                pwd_ele.focus();
-                return;
-            }
-
-            let nick = nick_ele.value;
-            let pwd = pwd_ele.value;
-
-
-            try{
-                let{jwt} = await login(nick, pwd);
-
-                if(!jwt) throw Error("No JWT!");
-
-                localStorage.setItem("jwt", jwt);
-                set_ui_loggedin(true);
-
-                let ls = await get_bots(jwt);
-                set_bot_list(ls);
-
-                let myModalEl = document.querySelector('#myModal');
-                let myModal = bootstrap.Modal.getOrCreateInstance(myModalEl);
-                myModal.hide();
-            }
-            catch(e){
-                console.error("Login failed!");
-            }
-        };
-
-        logout_btn.onclick = async ()=>{
-            localStorage.removeItem("jwt");
-
-            set_ui_loggedin(false);
-
-            let ls = await get_bots();
-            set_bot_list(ls);
-        };
-
-        function replace_dom_code(f, root_ele){
-            let eles = root_ele.getElementsByTagName("code");
-            for(let i=0; i<eles.length; i++){
-                let ele = eles[i];
-
-                //let ele2 = parse_html(f(ele));
-                let ele2 = f(ele);
-
-                if(ele2){
-                    ele.parentNode.replaceChild(ele2, ele);
-                }
-            }
-            return root_ele;
-        }
-
-
-
-        function is_graph(obj){
-            if("nodes" in obj){
-                if("edges" in obj || "links" in obj){
-                    return true;
-                }
-            }
-            return false;
-        }
-
-
-        function rename_attr(obj, old, s){
-            if(obj[old]){
-                obj[s] = obj[old];
-                delete obj[old];
-            }
-            return obj;
-        }
-
-
-
-        function translate_graph(obj){
-            let ret_obj = {
-                nodes: [],
-                edges: []
-            };
-
-            obj = rename_attr(obj, "links", "edges");
-
-            if(obj.nodes){
-                if(Array.isArray(obj.nodes)){
-                    for(let node of obj.nodes){
-
-                        if(typeof node === "object"){
-                            if(node.id){
-                                node = rename_attr(node, "name", "label");
-                                ret_obj.nodes.push([node.id, { "radius": 15, "color": "orange"} ]);
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            if(obj.edges){
-                if(Array.isArray(obj.edges)){
-                    for(let edge of obj.edges){
-                        if(typeof edge === "object"){
-                            edge = rename_attr(edge, "source", "from");
-                            edge = rename_attr(edge, "target", "to");
-                            if(edge.from){
-                                if(edge.to){
-                                    let e = [edge.from, edge.to, {"color": "black"}];
-                                    ret_obj.edges.push(e);
-                                }
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            console.log(ret_obj);
-            return ret_obj;
-        }
-
-
-        function replace_code(code_ele){
-            let txt = code_ele.innerHTML;
-
-            try{
-                return parse_html(parse_dot_lang(txt));
-            }
-            catch(err){
-                //console.log(err);
-            }
-
-            try{
-                let obj = JSON.parse(txt);
-                if(is_graph(obj)){
-                    let s = `<net-graph style="width:400px; height:350px;">${JSON.stringify(translate_graph(obj))}</net-graph>`;
-                    return parse_html(s);
-                }
-
-            }
-            catch(err){
-                //console.log(err);
-            }
-
-            return code_ele;
-        }
-
-
-
-        submit_btn.onclick = async evt =>{
-            let input_string = user_input.value;
-
-            if(input_string.trim() !== ''){
-                answer_count += 1;
-
-                user_input.value = "";
-                log_msg('User', input_string);
-                log.innerHTML += `<tr>
-                                    <td><b>${get_bot_name()}</b>:</td>
-                                    <td id="${answer_count}"></td>
-                                  </tr>`;
-                let table_cell = document.getElementById(answer_count);
-
-                let acc_text = "";
-                for await (let token of ask_question(bot_select.value, input_string, system_prompt.value)){
-                    //console.log(token);
-                    acc_text += "" + token;
-                    switch(view_select.value){
-                        case "md":
-                            table_cell.innerHTML = "";
-                            let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text)));
-                            table_cell.appendChild(ele);
-                            break;
-
-                        case "plain":
-                            table_cell.innerHTML = `<pre>${acc_text}</pre>`;
-                            break;
-                    }
-                    scroll_down();
-                }
-
-                /*
-                function play() {
-                  var audio = new Audio('https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3');
-                  audio.play();
-                }
-                */
-
-
-                let final_answer = acc_text;
-                console.log(final_answer);
-
-
-                let extra_s = "";
-                let{file} = await text2speech(final_answer);
-
-                //autoplay controls
-                extra_s = `
-                    <audio controls>
-                        <source src="${file}" type="audio/mpeg">
-                    </audio>`;
-
-                //console.log(file);
-
-                switch(view_select.value){
-
-                    case "md":
-                        table_cell.innerHTML = "";
-                        let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text) + extra_s));
-                        table_cell.appendChild(ele);
-                        break;
-
-                    case "plain":
-                        table_cell.innerHTML = `<pre>${final_answer}</pre>`;
-                        break;
-                }
-
-                scroll_down();
-
-            }
-        };
-
-    };
-    </script>
+    <script src="main.js"></script>
 </body>
 </html>

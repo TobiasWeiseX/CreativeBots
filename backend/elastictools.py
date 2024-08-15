@@ -56,3 +56,28 @@ def get_datetime_interval(search: Search, start, end) -> Search:
     return search.filter("range", timest={"gte": start}).filter("range", timest={"lte": end})
 
 
+#schema intro spection and maybe comparison/diffing
+#TODO: route that takes a schema json and compares to internal structure and returns boolean
+
+def simplify_properties(d):
+    new_d = {}
+    for field, d3 in d["properties"].items():
+        if "type" in d3:
+            new_d[field] = d3["type"]
+        elif "properties" in d3:
+            new_d[field] = simplify_properties(d3)
+    return new_d
+
+
+def get_type_schema(client: Elasticsearch):
+    d = client.indices.get(index="*").body
+    new_d = {}
+    for index, d2 in d.items():
+        new_d[index] = simplify_properties(d2["mappings"])
+    return new_d
+
+
+
+
+
+

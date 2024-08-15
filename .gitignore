@@ -1,4 +1,6 @@
 backend/__pycache__/
 ollama
 deployment/ollama
+*.env
+deployment/*.env
 
