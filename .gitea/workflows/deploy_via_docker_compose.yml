@@ -20,7 +20,7 @@ jobs:
             docker-compose down
             git pull
             echo "============ Git pull finished! ========="
-            echo ${{ vars.ENV }} > .env
+            echo '${{ vars.ENV }}' > .env
             echo "============ Env creation finished! ========="
             docker-compose build
             echo "============= Image build finishes! =============="
