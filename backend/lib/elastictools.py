@@ -88,6 +88,7 @@ def wait_for_elasticsearch():
     while True:
         try:
             client = Elasticsearch(hosts=elastic_url)
+            client.indices.get_alias(index="*")
             #connections.create_connection(hosts=app.config['elastic_uri'])
             #connections.get_connection().cluster.health(wait_for_status='yellow')
             #init_indicies()
@@ -98,5 +99,8 @@ def wait_for_elasticsearch():
             i *= 2 #1.5
             time.sleep(i)
             print("Elasticsearch not found! Wait %s seconds!" % i, flush=True)
+
+
+
 
 

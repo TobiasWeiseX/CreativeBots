@@ -72,7 +72,42 @@ async function register(email, pwd){
 }
 
 
+async function text2speech(txt){
+    const formData = new FormData();
+    formData.append("text", txt);
+    const response = await fetch("/text2speech", {
+        method: "POST",
+        headers: {
+            'accept': '*/*'//,
+            //'Authorization': 'Bearer ' + jwt
+        },
+        body: formData
+    });
+    return response.json();
+}
 
+
+
+//======= bot crud ===================
+
+async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("visibility", visibility);
+    formData.append("description", description);
+    formData.append("llm_model", llm);
+    formData.append("system_prompt", sys_prompt);
+
+    const response = await fetch("/bot", {
+        method: "POST",
+        headers: {
+            'accept': '*/*',
+            'Authorization': 'Bearer ' + jwt
+        },
+        body: formData
+    });
+    return response.json();
+}
 
 async function get_bots(jwt){
     if(jwt){
@@ -96,21 +131,7 @@ async function get_bots(jwt){
     }
 }
 
-async function text2speech(txt){
-    const formData = new FormData();
-    formData.append("text", txt);
-    const response = await fetch("/text2speech", {
-        method: "POST",
-        headers: {
-            'accept': '*/*'//,
-            //'Authorization': 'Bearer ' + jwt
-        },
-        body: formData
-    });
-    return response.json();
-}
-
-async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
+async function change_bot(jwt, name, visibility, description, llm, sys_prompt){
     const formData = new FormData();
     formData.append("name", name);
     formData.append("visibility", visibility);
@@ -119,7 +140,7 @@ async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
     formData.append("system_prompt", sys_prompt);
 
     const response = await fetch("/bot", {
-        method: "POST",
+        method: "PUT",
         headers: {
             'accept': '*/*',
             'Authorization': 'Bearer ' + jwt
@@ -128,6 +149,23 @@ async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
     });
     return response.json();
 }
+
+
+async function delete_bot(jwt, bot_id){
+    const formData = new FormData();
+    formData.append("id", bot_id);
+    const response = await fetch("/bot", {
+        method: "DELETE",
+        headers: {
+            'accept': '*/*',
+            'Authorization': 'Bearer ' + jwt
+        },
+        body: formData
+    });
+    return response.json();
+}
+
+
 
 async function* ask_question(bot_id, question, system_prompt=""){
     let socket;
@@ -243,6 +281,30 @@ function alert_bot_change(success){
     `;
 }
 
+
+
+function is_graph(obj){
+    if("nodes" in obj){
+        if("edges" in obj || "links" in obj){
+            return true;
+        }
+    }
+    return false;
+}
+
+
+function rename_attr(obj, old, s){
+    if(obj[old]){
+        obj[s] = obj[old];
+        delete obj[old];
+    }
+    return obj;
+}
+
+
+
+
+
 window.onload = async ()=>{
     document.documentElement.style.setProperty("--bs-primary-rgb", "45, 124, 172");
 
@@ -275,11 +337,15 @@ window.onload = async ()=>{
 
     //change bot form
     let change_bot_btn = document.getElementById("change_bot_btn");
+    let change_bot_select = document.getElementById("change_bot_select");
     let change_bot_name = document.getElementById("change_bot_name");
     let change_bot_visibility_select = document.getElementById("change_bot_visibility_select");
     let change_bot_description = document.getElementById("change_bot_description");
     let change_bot_llm_select = document.getElementById("change_bot_llm_select");
     let change_bot_system_prompt = document.getElementById("change_bot_system_prompt");
+
+    let delete_bot_btn = document.getElementById("delete_bot_btn");
+
 
 
 
@@ -323,6 +389,8 @@ window.onload = async ()=>{
             //enable create bot button
             create_bot_btn.removeAttribute("disabled");
             change_bot_btn.removeAttribute("disabled");
+            delete_bot_btn.removeAttribute("disabled");
+
             login_btn.style.display = "none";
             logout_btn.style.display = "block";
 
@@ -335,6 +403,8 @@ window.onload = async ()=>{
             //disable create bot button
             create_bot_btn.setAttribute("disabled", "disabled");
             change_bot_btn.setAttribute("disabled", "disabled");
+            delete_bot_btn.setAttribute("disabled", "disabled");
+
             logout_btn.style.display = "none";
             login_btn.style.display = "block";
 
@@ -344,6 +414,29 @@ window.onload = async ()=>{
     }
 
 
+
+    function update_ui(){
+
+        //are we logged in?
+        let jwt = localStorage.getItem("jwt");
+        if(jwt === null){
+            let ls = await get_bots();
+            set_bot_list(ls);
+            set_ui_loggedin(false);
+        }
+        else{
+            let ls = await get_bots(jwt);
+            set_bot_list(ls);
+            set_ui_loggedin(true);
+        }
+
+    }
+
+
+
+
+
+    /*
     //init: are we logged in on start?
     let jwt = localStorage.getItem("jwt");
     if(jwt === null){
@@ -356,6 +449,10 @@ window.onload = async ()=>{
         set_bot_list(ls);
         set_ui_loggedin(true);
     }
+    */
+
+    update_ui();
+
 
     //init chat
     log_msg(get_bot_name(), "Ask a question!");
@@ -386,9 +483,10 @@ window.onload = async ()=>{
                 clean_bot_create_form();
 
                 //update bot list
-                let ls = await get_bots(jwt);
-                set_bot_list(ls);
+                //let ls = await get_bots(jwt);
+                //set_bot_list(ls);
 
+                update_ui();
             }
             catch(err){
                 console.error(err);
@@ -398,6 +496,29 @@ window.onload = async ()=>{
         }
     };
 
+    delete_bot_btn.onclick = async ()=>{
+        let jwt = localStorage.getItem("jwt");
+        if(jwt){
+            let bot_id = change_bot_select.value
+            try{
+                let r = await delete_bot(jwt, bot_id);
+                alert_bot_change(true);
+                //clean_bot_create_form();
+
+                //update bot list
+                //let ls = await get_bots(jwt);
+                //set_bot_list(ls);
+
+
+                update_ui();
+            }
+            catch(err){
+                console.error(err);
+                console.error("Couldn't delete bot!");
+                alert_bot_change(false);
+            }
+        }
+    };
 
 
     change_bot_btn.onclick = async ()=>{
@@ -422,12 +543,7 @@ window.onload = async ()=>{
             try{
                 let {bot_id} = await change_bot(jwt, name, visibility, description, llm, sys_prompt);
                 alert_bot_change(true);
-                //clean_bot_create_form();
-
-                //update bot list
-                let ls = await get_bots(jwt);
-                set_bot_list(ls);
-
+                update_ui();
             }
             catch(err){
                 console.error(err);
@@ -465,10 +581,12 @@ window.onload = async ()=>{
             if(!jwt) throw Error("No JWT!");
 
             localStorage.setItem("jwt", jwt);
-            set_ui_loggedin(true);
 
+
+            set_ui_loggedin(true);
             let ls = await get_bots(jwt);
             set_bot_list(ls);
+
 
             let myModalEl = document.querySelector('#myModal');
             let myModal = bootstrap.Modal.getOrCreateInstance(myModalEl);
@@ -522,20 +640,17 @@ window.onload = async ()=>{
 
 
 
-
-
-
-
-
-
     logout_btn.onclick = async ()=>{
         localStorage.removeItem("jwt");
 
-        set_ui_loggedin(false);
+        update_ui();
 
-        let ls = await get_bots();
-        set_bot_list(ls);
+        //set_ui_loggedin(false);
+        //let ls = await get_bots();
+        //set_bot_list(ls);
     };
+
+
 
     function replace_dom_code(f, root_ele){
         let eles = root_ele.getElementsByTagName("code");
@@ -554,23 +669,7 @@ window.onload = async ()=>{
 
 
 
-    function is_graph(obj){
-        if("nodes" in obj){
-            if("edges" in obj || "links" in obj){
-                return true;
-            }
-        }
-        return false;
-    }
 
-
-    function rename_attr(obj, old, s){
-        if(obj[old]){
-            obj[s] = obj[old];
-            delete obj[old];
-        }
-        return obj;
-    }
 
 
 
@@ -645,6 +744,8 @@ window.onload = async ()=>{
         return code_ele;
     }
 
+
+    let receiving_token_atm = false;
 
 
     submit_btn.onclick = async evt =>{

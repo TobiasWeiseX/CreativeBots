@@ -192,6 +192,10 @@
             <a id="tab3" class="nav-link disabled" data-bs-toggle="tab" href="#tweak_bot_tab">Tweak bot</a>
           </li>
 
+          <li class="nav-item">
+            <a id="tab4" class="nav-link disabled" data-bs-toggle="tab" href="#question_templates_tab">Question templates</a>
+          </li>
+
         </ul>
 
         <!-- Tab panes -->
@@ -324,6 +328,13 @@
 
                 <form>
 
+
+                <label for="change_bots">Choose a bot:</label>
+                <select name="change_bots" id="change_bot_select" class="form-select">
+                    <option value="md">Some bot</option>
+                </select>
+
+                <br>
 
                 <label for="bot_name" class="form-label">Name:</label>
                 <input type="bot_name" class="form-control" id="bot_name" placeholder="The displayed name of the bot.">

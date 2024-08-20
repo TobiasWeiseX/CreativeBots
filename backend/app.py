@@ -612,8 +612,8 @@ def catchAll(path):
     return send_from_directory('./public', path)
 
 
-if __name__ == '__main__':
 
+def main():
     LOG_LEVEL = os.getenv("LOG_LEVEL")
     if LOG_LEVEL:
         logging.basicConfig(level=eval("logging." + LOG_LEVEL))
@@ -634,12 +634,19 @@ if __name__ == '__main__':
         app.logger.addHandler(handler)
     """
 
-    wait_for_elasticsearch()
+    #wait_for_elasticsearch()
     download_llm()
     connections.create_connection(hosts=app.config['elastic_uri'], request_timeout=60)
+    wait_for_elasticsearch()
     init_indicies()
     create_default_users()
     app.run(debug=False, threaded=True, host='0.0.0.0')
+
+
+if __name__ == '__main__':
+    main()
+
+
 
 
 
