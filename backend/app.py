@@ -57,16 +57,18 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 #----------home grown--------------
-#from scraper import WebScraper
-from funcs import group_by
-from elastictools import get_by_id, update_by_id, delete_by_id
-from models import init_indicies, QueryLog, Chatbot, User, Text
+from lib.funcs import group_by
+from lib.elastictools import get_by_id, update_by_id, delete_by_id, wait_for_elasticsearch
+from lib.models import init_indicies, QueryLog, Chatbot, User, Text
+from lib.chatbot import ask_bot, train_text, download_llm
+from lib.speech import text_to_speech
+from lib.mail import send_mail
+from lib.user import hash_password, create_user, create_default_users
 
-
-from chatbot import ask_bot, train_text
-from speech import text_to_speech
 
 BOT_ROOT_PATH = os.getenv("BOT_ROOT_PATH")
+assert BOT_ROOT_PATH
+
 
 # JWT Bearer Sample
 jwt = {
@@ -151,35 +153,11 @@ def uses_jwt(required=True):
             kwargs["user"] = user
             return f(*args, **kwargs)
 
-
         return decorated_route
 
     return non_param_deco
 
 
-def create_key(salt: str, user_email: str) -> Fernet:
-    """
-    Example salt: 9c46f833b3376c5f3b64d8a93951df4b
-    Fernet usage: token = f.encrypt(b"Secret message!")
-    """
-    salt_bstr = bytes(salt, "utf-8")
-    email_bstr = bytes(user_email, "utf-8")
-    #password = b"password"
-    #salt = os.urandom(16)
-    #salt = b"9c46f833b3376c5f3b64d8a93951df4b"
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt_bstr,
-        iterations=48,
-    )
-    key = base64.urlsafe_b64encode(kdf.derive(email_bstr))
-    return Fernet(key)
-
-
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['CORS_METHODS'] = ["GET,POST,OPTIONS,DELETE,PUT"]
 
 
 env_to_conf = {
@@ -199,9 +177,6 @@ for env_key, conf_key in env_to_conf.items():
 
 
 
-
-#from flask_cors import CORS #falls cross-orgin verwendet werden soll
-#CORS(app)
 
 socket = SocketIO(app, cors_allowed_origins="*")
 
@@ -235,11 +210,6 @@ def handle_message(message):
     for chunk in ask_bot(system_prompt + " " + question, bot_id):
         socket.emit('backend token', {'data': chunk, "done": False}, to=room)
     socket.emit('backend token', {'done': True}, to=room)
-
-
-
-def hash_password(s: str) -> str:
-    return hashlib.md5(s.encode('utf-8')).hexdigest()
 
 
 #======================= TAGS =============================
@@ -296,10 +266,6 @@ def login(form: LoginRequest):
                     'message': msg
                 }), 400
 
-
-
-
-from mail import send_mail
 
 class RegisterRequest(BaseModel):
     email: str = Field(None, description='The users E-Mail that serves as nick too.')
@@ -361,7 +327,6 @@ def register(form: RegisterRequest):
 
 class GetSpeechRequest(BaseModel):
     text: str = Field(None, description="Some text to convert to mp3")
-
 
 @app.post('/text2speech', summary="", tags=[], security=security)
 def text2speech(form: GetSpeechRequest):
@@ -538,7 +503,10 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
         ]
     )
 
-    embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
+    ollama_url = os.getenv("OLLAMA_URI")
+
+
+    embeddings = OllamaEmbeddings(model="llama3", base_url=ollama_url)
 
     vector_store = ElasticsearchStore(
             es_url=app.config['elastic_uri'],
@@ -551,7 +519,7 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
     bot = Chatbot.get(id=bot_id)
     llm = Ollama(
         model=bot.llm_model,
-        base_url="http://ollama:11434"
+        base_url=ollama_url
     )
 
     k = 4
@@ -598,7 +566,6 @@ def query_bot(query: AskBotRequest, decoded_jwt, user):
 
 
 #-----------------Embedding----------------------
-#ESDocument = namedtuple('Document', ['page_content', 'metadata'])
 
 class TrainTextRequest(BaseModel):
     bot_id: str = Field(None, description="The bot's id")
@@ -627,13 +594,10 @@ def upload(form: TrainTextRequest, decoded_jwt, user):
             'message': 'No data source found'
         }), 400
 
-
     train_text(bot_id, text)
-
     return jsonify({
         "status": "success"
     })
-
 
 #-------- non api routes -------------
 
@@ -648,79 +612,34 @@ def catchAll(path):
     return send_from_directory('./public', path)
 
 
-
-#def init_indicies():
-#    # create the mappings in elasticsearch
-#    for Index in [QueryLog, Chatbot, User, Text]:
-#        Index.init()
-
-
-def create_user(email, password, role="user", verified=False):
-    user = User(meta={'id': email}, email=email, password_hash=hash_password(password + email), role=role)
-    user.creation_date = datetime.now()
-    user.isEmailVerified = verified
-    user.save()
-    return user
-
-
-def create_default_users():
-    #create default users
-    client = Elasticsearch(app.config['elastic_uri'])
-    default_users = os.getenv("DEFAULT_USERS")
-    if default_users:
-        for (email, pwd, role) in json.loads(default_users):
-            if len(get_by_id(client, index="user", id_field_name="email", id_value=email)) == 0:
-                create_user(email, pwd, role=role, verified=True)
-
-
-
-import requests
-
-
 if __name__ == '__main__':
 
+    LOG_LEVEL = os.getenv("LOG_LEVEL")
+    if LOG_LEVEL:
+        logging.basicConfig(level=eval("logging." + LOG_LEVEL))
+    else:
+        logging.basicConfig(level=logging.WARN)
+
     #TODO: implement some kind of logging mechanism
-    logging.basicConfig(level=logging.WARN)
 
     """
     USE_LOKI_LOGGER = os.getenv("USE_LOKI_LOGGER")
     if USE_LOKI_LOGGER:
         handler = logging_loki.LokiHandler(
             url="http://loki:3100/loki/api/v1/push", 
-            tags={"application": "Nextsearch"},
+            tags={"application": "CreativeBots"},
             #auth=("username", "password"),
             version="1",
         )
         app.logger.addHandler(handler)
     """
 
-    #TODO: find a clean way to wait without exceptions!
-    #Wait for elasticsearch to start up!
-    i = 1
-
-    while True:
-        try:
-            #client = Elasticsearch(app.config['elastic_uri'])
-            connections.create_connection(hosts=app.config['elastic_uri'])
-            connections.get_connection().cluster.health(wait_for_status='yellow')
-            init_indicies()
-            print("Elasticsearch found! Run Flask-app!", flush=True)
-            break
-        except:
-            #except ConnectionError:
-            i *= 1.5
-            time.sleep(i)
-            print("Elasticsearch not found! Wait %s seconds!" % i, flush=True)
-
-
+    wait_for_elasticsearch()
+    download_llm()
     connections.create_connection(hosts=app.config['elastic_uri'], request_timeout=60)
-
     init_indicies()
     create_default_users()
-    app.run(debug=True, threaded=True, host='0.0.0.0')
-
-
-
+    app.run(debug=False, threaded=True, host='0.0.0.0')
 
 
 

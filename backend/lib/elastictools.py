@@ -1,8 +1,8 @@
 """
 Some helper functions to make querying easier
 """
+import time, json, os
 from typing import Any, Tuple, List, Dict, Any, Callable, Optional
-import json
 from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
 from elasticsearch_dsl import Search, A, UpdateByQuery, Document, Date, Integer, Keyword, Float, Long, Text, connections
 
@@ -47,7 +47,6 @@ def delete_by_id(client: Elasticsearch, index: str, id_field_name: str, id_value
     response = s.delete()
     #if not response.success():
     #    raise Exception("Unable to delete id '%s' in index '%' !" % (index, id_value))
-
     print(response, flush=True)
 
 
@@ -78,6 +77,26 @@ def get_type_schema(client: Elasticsearch):
 
 
 
+def wait_for_elasticsearch():
+    #TODO: find a clean way to wait without exceptions!
+    #Wait for elasticsearch to start up!
 
+    elastic_url = os.getenv("ELASTIC_URI")
+    assert elastic_url
+
+    i = 1
+    while True:
+        try:
+            client = Elasticsearch(hosts=elastic_url)
+            #connections.create_connection(hosts=app.config['elastic_uri'])
+            #connections.get_connection().cluster.health(wait_for_status='yellow')
+            #init_indicies()
+            print("Elasticsearch found! Run Flask-app!", flush=True)
+            break
+        except:
+            #except ConnectionError:
+            i *= 2 #1.5
+            time.sleep(i)
+            print("Elasticsearch not found! Wait %s seconds!" % i, flush=True)
 
 

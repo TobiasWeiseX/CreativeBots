@@ -8,6 +8,8 @@ import pyttsx3
 flite -voice slt -t "This example is useful when there is a need to convert the contents of a file to speech. It can simplify tasks such as reading out the contents of a document or generating voiceovers for specific text files."
 """
 
+#espeak -v mb-en1 -s 120 "Hello world"
+
 
 def text_to_speech(text: str) -> str:
     unix_timestamp = datetime.now().timestamp()

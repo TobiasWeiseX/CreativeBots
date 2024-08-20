@@ -138,27 +138,7 @@ class QueryLog(Document):
 
 
 
-
 def init_indicies():
     # create the mappings in elasticsearch
     for Index in [QueryLog, Chatbot, User, Text]:
         Index.init()
-
-
-
-
-if __name__ == "__main__":
-    elastic_uri = os.getenv("ELASTIC_URI")
-    #elastic_uri = "http://localhost:9200"
-
-    # create and save and article
-    #article = Article(meta={'id': 42}, title='Hello world!', tags=['test'])
-    #article.body = ''' looong text '''
-    ##article.published_from = datetime.now()
-    #article.save()
-
-    #article = Article.get(id=42)
-    #print(article.is_published())
-
-    # Display cluster health
-    #print(connections.get_connection().cluster.health())

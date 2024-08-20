@@ -316,25 +316,33 @@ window.onload = async ()=>{
         bot_system_prompt.value = "";
     }
 
-
-
-
     function set_ui_loggedin(b){
         if(b){
+            console.log("User logged in!");
+
             //enable create bot button
             create_bot_btn.removeAttribute("disabled");
             change_bot_btn.removeAttribute("disabled");
             login_btn.style.display = "none";
             logout_btn.style.display = "block";
+
+            document.getElementById("tab2").classList.remove('disabled');
+            document.getElementById("tab3").classList.remove('disabled');
         }
         else{
+            console.log("User not logged in!");
+
             //disable create bot button
             create_bot_btn.setAttribute("disabled", "disabled");
             change_bot_btn.setAttribute("disabled", "disabled");
             logout_btn.style.display = "none";
             login_btn.style.display = "block";
+
+            document.getElementById("tab2").classList.add('disabled');
+            document.getElementById("tab3").classList.add('disabled');
         }
     }
+
 
     //init: are we logged in on start?
     let jwt = localStorage.getItem("jwt");

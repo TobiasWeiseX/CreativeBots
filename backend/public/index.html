@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
 
-
     <!--
     load the following async:?
     -->
@@ -25,12 +24,9 @@
     <script async="async" type='text/javascript' src='http://www.x3dom.org/download/x3dom.js'> </script> 
     <link async="async" rel='stylesheet' type='text/css' href='http://www.x3dom.org/download/x3dom.css'>
 
-
-
     <script async="async" src="https://d3js.org/d3.v3.js"></script>
     <script async="async" src="jsnetworkx.js"></script>
     <script async="async" src="widget.js"></script>
-
 
 </head>
 <body>
@@ -189,11 +185,11 @@
             <a class="nav-link active" data-bs-toggle="tab" href="#home">Chat</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#create_bot_tab">Create bot</a>
+            <a id="tab2" class="nav-link disabled" data-bs-toggle="tab" href="#create_bot_tab">Create bot</a>
           </li>
 
           <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#tweak_bot_tab">Tweak bot</a>
+            <a id="tab3" class="nav-link disabled" data-bs-toggle="tab" href="#tweak_bot_tab">Tweak bot</a>
           </li>
 
         </ul>
@@ -232,16 +228,16 @@
             <div class="tab-pane container fade" id="create_bot_tab">
 
                 <div style="height: 10px !important;"></div>
-
+               <!-- 
                 <i>Creating a new bot requires an account and login via settings!</i>
                 <br>
                 <br>
-
+                -->
                 <form>
 
 
                 <label for="bot_name" class="form-label">Name:</label>
-                <input type="bot_name" class="form-control" id="bot_name" placeholder="MyNewBot">
+                <input type="bot_name" class="form-control" id="bot_name" placeholder="The displayed name of the bot.">
 
                 <br>
 
@@ -255,7 +251,7 @@
                 <br>
 
                 <label for="bot_description">Description:</label>
-                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A bot that cares."></textarea>
+                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A description of the bot and it's purpose."></textarea>
 
                 <br>
 
@@ -267,7 +263,7 @@
                 <br>
 
                 <label for="bot_system_prompt">System prompt:</label>
-                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="Answer all questions short and sweet!"></textarea>
+                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="The prompt that defines the bot's main behaviour."></textarea>
 
 
                 <br>
@@ -320,17 +316,17 @@
             <div class="tab-pane container fade" id="tweak_bot_tab">
 
                 <div style="height: 10px !important;"></div>
-
+                               <!-- 
                 <i>Tweaking a new bot requires an account and login via settings!</i>
                 <br>
                 <br>
-
+                -->
 
                 <form>
 
 
                 <label for="bot_name" class="form-label">Name:</label>
-                <input type="bot_name" class="form-control" id="bot_name" placeholder="MyNewBot">
+                <input type="bot_name" class="form-control" id="bot_name" placeholder="The displayed name of the bot.">
 
                 <br>
 
@@ -344,7 +340,7 @@
                 <br>
 
                 <label for="bot_description">Description:</label>
-                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A bot that cares."></textarea>
+                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A description of the bot and it's purpose."></textarea>
 
                 <br>
 
@@ -356,7 +352,7 @@
                 <br>
 
                 <label for="bot_system_prompt">System prompt:</label>
-                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="Answer all questions short and sweet!"></textarea>
+                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="The prompt that defines the bot's main behaviour."></textarea>
 
 
                 <br>
@@ -376,9 +372,11 @@
                       <div class="col"></div>
                       <div class="col"></div>
                       <div class="col"></div>
-                      <div class="col"></div>
                       <div class="col">
                         <button id="change_bot_btn" disabled type="button" class="btn btn-primary text-white">Change bot</button>
+                      </div>
+                      <div class="col">
+                        <button id="delete_bot_btn" disablxed type="button" class="btn btn-danger text-white">Delete bot</button>
                      </div>
                 </div>
 

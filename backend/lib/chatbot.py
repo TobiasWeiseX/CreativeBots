@@ -1,6 +1,7 @@
+"""
+All functions around bots
 
-from models import Chatbot, Text, User
-
+"""
 from uuid import uuid4
 from collections import namedtuple
 import os, hashlib, traceback, logging
@@ -24,10 +25,16 @@ from langchain_community.embeddings import OllamaEmbeddings
 
 from langchain_elasticsearch import ElasticsearchStore
 
-
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+
+
+
+from lib.models import Chatbot, Text, User
+
+
+
 
 
 ollama_url = os.getenv("OLLAMA_URI")
@@ -145,7 +152,7 @@ def ask_bot2(question, bot_id):
         ]
     )
 
-    embeddings = OllamaEmbeddings(model="llama3", base_url="http://ollama:11434")
+    embeddings = OllamaEmbeddings(model="llama3", base_url=ollama_url)
 
     vector_store = ElasticsearchStore(
             es_url=app.config['elastic_uri'],
@@ -158,7 +165,7 @@ def ask_bot2(question, bot_id):
     bot = Chatbot.get(id=bot_id)
     llm = Ollama(
         model=bot.llm_model,
-        base_url="http://ollama:11434"
+        base_url=ollama_url
     )
 
     k = 4
@@ -203,10 +210,19 @@ def ask_bot2(question, bot_id):
 
 
 
+from ollama import Client as OllamaClient
 
+def download_llm(model="llama3"):
+    #print(ollama_url, flush=True)
 
+    #ollama_client = OllamaClient(host=ollama_url)
+    #x = ollama_client.pull('llama3')
+    #print( type(x), flush=True)
+    #print( x.__dict__, flush=True)
+    #print( x, flush=True)
 
-
+    s = """curl %s/api/pull -d '{ "name": "%s" }' """ % (ollama_url, model)
+    print( os.system(s.strip()) ,flush=True)
 
 
 

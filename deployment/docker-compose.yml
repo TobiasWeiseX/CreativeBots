@@ -64,7 +64,6 @@ services:
     networks:
       - llm_network
 
-
   ollama:
     container_name: ${APP_PREFIX}_ollama
     image: ollama/ollama:latest
@@ -78,10 +77,9 @@ services:
       - llm_network
     #command: "ollama pull llama2"
 
-
   ollama-webui:
+    container_name: ${APP_PREFIX}_ollama-webui
     image: ghcr.io/ollama-webui/ollama-webui:main
-    container_name: ollama-webui
     volumes:
       - ../ollama/ollama-webui:/app/backend/data
     depends_on:
@@ -112,15 +110,20 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - ../backend/backend.env
       - .env
+    environment:
+      - LOG_LEVEL=ERROR
+      - BOT_ROOT_PATH=/
+      - ELASTIC_URI=http://elasticsearch:9200
+      - OLLAMA_URI=http://ollama:11434
+
     build: ../backend
     networks:
       - llm_network
     depends_on:
       - elasticsearch
       - ollama
-      #- minio
+      - minio
 
 volumes:
   esdata:
