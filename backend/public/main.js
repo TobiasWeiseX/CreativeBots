@@ -367,14 +367,7 @@ window.onload = async ()=>{
         return bot_select.options[i].text;
     }
 
-    function set_bot_list(ls){
-        if(ls.length === 0){
-            console.error("No bots found!");
-        }
-        else{
-            bot_select.innerHTML = ls.map(bot => `<option value="${bot.id}">${bot.name}</option>`).join("");
-        }
-    }
+
 
     function clean_bot_create_form(){
         bot_name.value = "";
@@ -413,46 +406,33 @@ window.onload = async ()=>{
         }
     }
 
+    function set_bot_list(ele, ls){
+        if(ls.length === 0){
+            console.error("No bots found!");
+        }
+        else{
+            ele.innerHTML = ls.map(bot => `<option value="${bot.id}">${bot.name}</option>`).join("");
+        }
+    }
 
-
-    function update_ui(){
-
+    async function update_ui(){
         //are we logged in?
         let jwt = localStorage.getItem("jwt");
         if(jwt === null){
-            let ls = await get_bots();
-            set_bot_list(ls);
+            let bots = await get_bots();
+            set_bot_list(bot_select, bots);
+            set_bot_list(change_bot_select, bots);
             set_ui_loggedin(false);
         }
         else{
-            let ls = await get_bots(jwt);
-            set_bot_list(ls);
+            let bots = await get_bots(jwt);
+            set_bot_list(bot_select, bots);
+            set_bot_list(change_bot_select, bots);
             set_ui_loggedin(true);
         }
-
     }
 
-
-
-
-
-    /*
-    //init: are we logged in on start?
-    let jwt = localStorage.getItem("jwt");
-    if(jwt === null){
-        let ls = await get_bots();
-        set_bot_list(ls);
-        set_ui_loggedin(false);
-    }
-    else{
-        let ls = await get_bots(jwt);
-        set_bot_list(ls);
-        set_ui_loggedin(true);
-    }
-    */
-
-    update_ui();
-
+    await update_ui();
 
     //init chat
     log_msg(get_bot_name(), "Ask a question!");
@@ -481,12 +461,7 @@ window.onload = async ()=>{
                 let {bot_id} = await create_bot(jwt, name, visibility, description, llm, sys_prompt);
                 alert_bot_creation(true);
                 clean_bot_create_form();
-
-                //update bot list
-                //let ls = await get_bots(jwt);
-                //set_bot_list(ls);
-
-                update_ui();
+                await update_ui();
             }
             catch(err){
                 console.error(err);
@@ -505,12 +480,8 @@ window.onload = async ()=>{
                 alert_bot_change(true);
                 //clean_bot_create_form();
 
-                //update bot list
-                //let ls = await get_bots(jwt);
-                //set_bot_list(ls);
 
-
-                update_ui();
+                await update_ui();
             }
             catch(err){
                 console.error(err);
@@ -543,7 +514,7 @@ window.onload = async ()=>{
             try{
                 let {bot_id} = await change_bot(jwt, name, visibility, description, llm, sys_prompt);
                 alert_bot_change(true);
-                update_ui();
+                await update_ui();
             }
             catch(err){
                 console.error(err);
@@ -552,9 +523,6 @@ window.onload = async ()=>{
             }
         }
     };
-
-
-
 
 
     submit_login_btn.onclick = async ()=>{
@@ -582,11 +550,7 @@ window.onload = async ()=>{
 
             localStorage.setItem("jwt", jwt);
 
-
-            set_ui_loggedin(true);
-            let ls = await get_bots(jwt);
-            set_bot_list(ls);
-
+            await update_ui();
 
             let myModalEl = document.querySelector('#myModal');
             let myModal = bootstrap.Modal.getOrCreateInstance(myModalEl);
@@ -596,8 +560,6 @@ window.onload = async ()=>{
             console.error("Login failed!");
         }
     };
-
-
 
 
     submit_register_btn.onclick = async ()=>{
@@ -642,12 +604,7 @@ window.onload = async ()=>{
 
     logout_btn.onclick = async ()=>{
         localStorage.removeItem("jwt");
-
-        update_ui();
-
-        //set_ui_loggedin(false);
-        //let ls = await get_bots();
-        //set_bot_list(ls);
+        await update_ui();
     };
 
 
