@@ -19,13 +19,17 @@ https://favtutor.com/articles/meta-llama-3-jailbreak/
 * https://medium.com/@lucgagan/understanding-chatgpt-functions-and-how-to-use-them-6643a7d3c01a
 
 
+## Use drivers for GPU!
+
+"ollama recommends running the https://www.amd.com/en/support/linux-drivers: amdgpu version file missing: /sys/module/amdgpu/version stat /sys/module/amdgpu/version: no such file or directory"
+"detected amdgpu versions []"
+"all detected amdgpus are skipped, falling back to CPU"
+"no GPU detected"
 
 
+## Use PyPy for more speed
 
-
-
-
-
+...
 
 
 

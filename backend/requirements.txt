@@ -7,19 +7,20 @@ bs4
 elasticsearch
 elasticsearch-dsl
 
+ollama
 langchain
 langchain-community
-tiktoken
 langchain_ollama
 langchain-elasticsearch
 
 pydantic
 
+
 fastapi
 
+gunicorn
 Werkzeug
 flask
-Flask-Cors
 Flask-SocketIO
 flask-openapi3
 
@@ -32,10 +33,5 @@ cryptography
 neo4j
 
 pyttsx3
-
-
-aiosmtpd
-dnspython
-chilkat
 
 

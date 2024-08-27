@@ -32,6 +32,7 @@ class User(Document):
 
 class Chatbot(Document):
     creation_date = Date()
+    changed_date = Date()
     name = Text()
     creator_id = Keyword()
     description = Text()

@@ -13,12 +13,6 @@ docker-compose build
 docker-compose up -d
 ```
 
-After deploy:
-
-### WebUI for Ollama:
-* http://localhost:8888
-* use to install model llama3 (or more https://ollama.com/library)
-
 ----
 
 ## Usage
@@ -43,7 +37,6 @@ After deploy:
 ### Backend
 * FastAPI
 * RabbitMQ/Kafka?
-* OpenSearch
 
 
 

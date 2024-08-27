@@ -2,8 +2,6 @@
 "use strict";
 
 
-
-
 //idea: generate proxy opject via openapi.json   api(url).login_now()
 
 function API(jwt){
@@ -109,30 +107,47 @@ async function create_bot(jwt, name, visibility, description, llm, sys_prompt){
     return response.json();
 }
 
-async function get_bots(jwt){
-    if(jwt){
-        const response = await fetch("/bot", {
-            method: "GET",
-            headers: {
-                'accept': '*/*',
-                'Authorization': 'Bearer ' + jwt
-            }
-        });
-        return response.json();
+async function get_bots(jwt, bot_id){
+    if(!bot_id){
+        if(jwt){
+            const response = await fetch("/bot", {
+                method: "GET",
+                headers: {
+                    'accept': '*/*',
+                    'Authorization': 'Bearer ' + jwt
+                }
+            });
+            return response.json();
+        }
+        else{
+            const response = await fetch("/bot", {
+                method: "GET",
+                headers: {
+                    'accept': '*/*'
+                }
+            });
+            return response.json();
+        }
     }
     else{
-        const response = await fetch("/bot", {
-            method: "GET",
-            headers: {
-                'accept': '*/*'
-            }
-        });
-        return response.json();
+        if(jwt){
+            const response = await fetch("/bot?id=" + bot_id, {
+                method: "GET",
+                headers: {
+                    'accept': '*/*',
+                    'Authorization': 'Bearer ' + jwt
+                }
+            });
+            return response.json();
+        }
     }
 }
 
-async function change_bot(jwt, name, visibility, description, llm, sys_prompt){
+
+
+async function change_bot(jwt, id, name, visibility, description, llm, sys_prompt){
     const formData = new FormData();
+    formData.append("id", id);
     formData.append("name", name);
     formData.append("visibility", visibility);
     formData.append("description", description);
@@ -156,6 +171,21 @@ async function delete_bot(jwt, bot_id){
     formData.append("id", bot_id);
     const response = await fetch("/bot", {
         method: "DELETE",
+        headers: {
+            'accept': '*/*',
+            'Authorization': 'Bearer ' + jwt
+        },
+        body: formData
+    });
+    return response.json();
+}
+
+async function bot_train_text(jwt, bot_id, text){
+    const formData = new FormData();
+    formData.append("bot_id", bot_id);
+    formData.append("text", text);
+    const response = await fetch("/bot/train/text", {
+        method: "POST",
         headers: {
             'accept': '*/*',
             'Authorization': 'Bearer ' + jwt
@@ -207,7 +237,7 @@ async function* ask_question(bot_id, question, system_prompt=""){
             else{
                 done = true;
                 socket.off('backend token');
-                dom_ele.dispatchEvent(new CustomEvent(evt_name, { detail: "" }));
+                dom_ele.dispatchEvent(new CustomEvent(evt_name, { detail: obj }));
             }
         });
         socket.emit('client message', {question, system_prompt, bot_id, room});
@@ -343,6 +373,7 @@ window.onload = async ()=>{
     let change_bot_description = document.getElementById("change_bot_description");
     let change_bot_llm_select = document.getElementById("change_bot_llm_select");
     let change_bot_system_prompt = document.getElementById("change_bot_system_prompt");
+    let change_bot_rag_text = document.getElementById("change_bot_rag_text");
 
     let delete_bot_btn = document.getElementById("delete_bot_btn");
 
@@ -367,13 +398,43 @@ window.onload = async ()=>{
         return bot_select.options[i].text;
     }
 
-
-
     function clean_bot_create_form(){
         bot_name.value = "";
         bot_description.value = "";
         bot_system_prompt.value = "";
     }
+
+    async function fill_bot_change_form(bot_id){
+
+        let jwt = localStorage.getItem("jwt");
+        if(jwt){
+            let bot = await get_bots(jwt, bot_id);
+
+            change_bot_name.value = bot.name;
+            change_bot_visibility_select.value = bot.visibility;
+            change_bot_description.value = bot.description;
+            change_bot_llm_select.value = bot.llm_model;
+            change_bot_system_prompt.value = bot.system_prompt;
+
+            /*
+            {
+              "creation_date": "Fri, 26 Jul 2024 19:13:18 GMT",
+              "creator_id": "cWG-75ABLLZSH2M7pxp8",
+              "description": "basic bot",
+              "id": "uqJ28JABAAhLOtEyOj2_",
+              "llm_model": "llama3",
+              "name": "Testbot",
+              "system_prompt": "",
+              "visibility": "public"
+            }
+            */
+
+        }
+
+    }
+
+
+
 
     function set_ui_loggedin(b){
         if(b){
@@ -429,6 +490,11 @@ window.onload = async ()=>{
             set_bot_list(bot_select, bots);
             set_bot_list(change_bot_select, bots);
             set_ui_loggedin(true);
+
+
+            let bot_id = change_bot_select.value;
+            await fill_bot_change_form(bot_id);
+
         }
     }
 
@@ -491,10 +557,21 @@ window.onload = async ()=>{
         }
     };
 
+    change_bot_select.onchange = async ()=>{
+        let jwt = localStorage.getItem("jwt");
+        if(jwt){
+            let bot_id = change_bot_select.value;
+            await fill_bot_change_form(bot_id);
+        }
+    };
+
+
 
     change_bot_btn.onclick = async ()=>{
         let jwt = localStorage.getItem("jwt");
         if(jwt){
+            let bot_id = change_bot_select.value
+
             let name = change_bot_name.value;
             let visibility = change_bot_visibility_select.value;
             let description = change_bot_description.value;
@@ -512,7 +589,18 @@ window.onload = async ()=>{
             }
 
             try{
-                let {bot_id} = await change_bot(jwt, name, visibility, description, llm, sys_prompt);
+                await change_bot(jwt, bot_id, name, visibility, description, llm, sys_prompt);
+
+                let text = change_bot_rag_text.value;
+                if(text.trim() !== ""){
+
+
+                    await bot_train_text(jwt, bot_id, text);
+
+                    //TODO: kill bot on partially failed creation?
+                }
+
+
                 alert_bot_change(true);
                 await update_ui();
             }
@@ -724,20 +812,23 @@ window.onload = async ()=>{
 
             let acc_text = "";
             for await (let token of ask_question(bot_select.value, input_string, system_prompt.value)){
-                //console.log(token);
-                acc_text += "" + token;
-                switch(view_select.value){
-                    case "md":
-                        table_cell.innerHTML = "";
-                        let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text)));
-                        table_cell.appendChild(ele);
-                        break;
+                console.log(token);
 
-                    case "plain":
-                        table_cell.innerHTML = `<pre>${acc_text}</pre>`;
-                        break;
+                if(typeof token === "string"){
+                    acc_text += token;
+                    switch(view_select.value){
+                        case "md":
+                            table_cell.innerHTML = "";
+                            let ele = replace_dom_code(replace_code, parse_html(marked.parse(acc_text)));
+                            table_cell.appendChild(ele);
+                            break;
+
+                        case "plain":
+                            table_cell.innerHTML = `<pre>${acc_text}</pre>`;
+                            break;
+                    }
+                    scroll_down();
                 }
-                scroll_down();
             }
 
             /*
@@ -782,18 +873,4 @@ window.onload = async ()=>{
     };
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

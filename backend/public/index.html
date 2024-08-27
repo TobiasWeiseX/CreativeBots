@@ -28,6 +28,28 @@
     <script async="async" src="jsnetworkx.js"></script>
     <script async="async" src="widget.js"></script>
 
+    <style>
+    #fun222 {
+          background-image: linear-gradient(
+            45deg,
+            red,
+            blue
+          );
+          opacity: 0.75;
+    }
+
+
+    #fun22 {
+          background-image: linear-gradient(
+            135deg,
+            red,
+            blue
+          );
+          opacity: 0.75;
+    }
+
+    </style>
+
 </head>
 <body>
 
@@ -68,7 +90,8 @@
                     let ele = document.getElementById("register_password");
                     if(ele.type === "password"){
                         ele.type = "text";
-                    } else {
+                    }
+                    else {
                         ele.type = "password";
                     }
                 }
@@ -121,7 +144,8 @@
                     let ele = document.getElementById("pass");
                     if(ele.type === "password"){
                         ele.type = "text";
-                    } else {
+                    }
+                    else {
                         ele.type = "password";
                     }
                 }
@@ -140,7 +164,7 @@
 
 
 
-    <div class="container-fluid p-3 bg-primary text-white text-center">
+    <div id="fun" class="container-fluid p-3 bg-primary text-white text-center">
       <h1>Creative Bots</h1>
       <p>Create and talk to chatbots!</p> 
     </div>
@@ -162,10 +186,34 @@
             <button id="logout_btn" type="button" class="btn btn-danger text-white">Logout</button>
 
             <br>
+            <br>
 
             <label for="system_prompt">System prompt:</label>
             <textarea id="system_prompt" class="form-control" rows="8" name="text"></textarea> 
 
+            <br>
+
+            <button onclick="add_geo_location()" type="button" class="btn btn-secondary text-white">Add Geo-Location</button>
+
+            <script>
+        
+            function add_geo_location(){
+                function callback(position) {
+                    let s = "My current position is: Latitude: " + position.coords.latitude + " Longitude: " + position.coords.longitude + " !";
+                    console.log(s);
+                    document.getElementById("system_prompt").innerHTML += " " + s;
+                }
+                if(navigator.geolocation){
+                    navigator.geolocation.getCurrentPosition(callback);
+                }
+                else {
+                    console.log("Geolocation is not supported by this browser.");
+                }
+            }
+
+            </script>
+
+            <br>
             <br>
 
             <label for="views">Choose a view:</label>
@@ -220,7 +268,7 @@
                       <option value="Is a monad a burito?">
                       <option value="Give the JSON of a graph linking Germanys 9 biggest cities">
                     </datalist> 
-                    <button id="submit_btn" class="btn btn-success" type="submit">Send</button>
+                    <button id="submit_btn" class="btn btn-success" type="button">Send</button>
                 </div>
 
                 <!-- Button to open the offcanvas sidebar -->
@@ -269,18 +317,6 @@
                 <label for="bot_system_prompt">System prompt:</label>
                 <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="The prompt that defines the bot's main behaviour."></textarea>
 
-
-                <br>
-
-                <label for="avatar">Text documents:</label>
-                <input disabled class="form-control" type="file" id="avatar" name="avatar" multiple accept=".pdf,.xml,.txt,.md,.doc,.docx,.odt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-
-
-                <br>
-
-                <label for="url">Links:</label>
-                <input disabled class="form-control" type="url" name="url" id="url" placeholder="https://example.com" pattern="https://.*" size="30" required />
-
                 <hr>
 
                 <div class="row">
@@ -298,19 +334,6 @@
                 <!-- alerts -->
 
                 <div id="alert_spawn"></div>
-
-               <!-- 
-                <div id="alert_bot_created" style="display: none;" class="alert alert-success alert-dismissible fade show">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    <strong>Success!</strong> Bot created!
-                </div>
-
-
-                <div id="alert_not_bot_created" style="display: none;" class="alert alert-danger alert-dismissible fade show">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    <strong>Couldn't create bot!</strong> Something killed that bot!
-                </div>
-                -->
 
                 </form>
 
@@ -337,45 +360,60 @@
                 <br>
 
                 <label for="bot_name" class="form-label">Name:</label>
-                <input type="bot_name" class="form-control" id="bot_name" placeholder="The displayed name of the bot.">
+                <input type="bot_name" class="form-control" id="change_bot_name" placeholder="The displayed name of the bot.">
 
                 <br>
 
                 <label for="bot_visibility">Visibility:</label>
-                <select name="bot_visibility" id="bot_visibility_select" class="form-select">
+                <select name="bot_visibility" id="change_bot_visibility_select" class="form-select">
                   <option value="public">Public to All</option>
                   <option value="private">Private to User</option>
                 </select> 
 
-
                 <br>
 
                 <label for="bot_description">Description:</label>
-                <textarea id="bot_description" class="form-control" rows="8" name="text" placeholder="A description of the bot and it's purpose."></textarea>
+                <textarea id="change_bot_description" class="form-control" rows="8" name="text" placeholder="A description of the bot and it's purpose."></textarea>
 
                 <br>
 
                 <label for="bot_llm">Language model:</label>
-                <select name="bot_llm" id="bot_llm_select" class="form-select">
+                <select name="bot_llm" id="change_bot_llm_select" class="form-select">
                   <option value="llama3">Llama3</option>
                 </select> 
 
                 <br>
 
-                <label for="bot_system_prompt">System prompt:</label>
-                <textarea id="bot_system_prompt" class="form-control" rows="8" name="text" placeholder="The prompt that defines the bot's main behaviour."></textarea>
+                <label for="bot_system_prompt">System prompt(behavior):</label>
+                <textarea id="change_bot_system_prompt" class="form-control" rows="8" name="text" placeholder="The prompt that defines the bot's main behaviour."></textarea>
 
+                <br>
+
+                <h4>Knowledge resources:</h4>
+                <br>
+
+                <label for="change_bot_rag_text_name">Text:</label>
+                <textarea id="change_bot_rag_text" class="form-control" rows="16" name="change_bot_rag_text_name" placeholder="A text that contains information used for the bot's answers.'"></textarea>
 
                 <br>
 
                 <label for="avatar">Text documents:</label>
                 <input disabled class="form-control" type="file" id="avatar" name="avatar" multiple accept=".pdf,.xml,.txt,.md,.doc,.docx,.odt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
 
-
                 <br>
 
-                <label for="url">Links:</label>
-                <input disabled class="form-control" type="url" name="url" id="url" placeholder="https://example.com" pattern="https://.*" size="30" required />
+                <label for="rag_urls">Links:</label>
+                <div class="input-group">
+                    <input disabled class="form-control" type="url" name="rag_urls" id="url" placeholder="https://example.com" pattern="https://.*" size="30" />
+                    <button disabled id="add_url_btn" class="btn btn-success" type="button">Add</button>
+                </div>
+
+
+                <!--
+                <ol>
+                    <li>https://playwright.dev/docs/ci-intro</li>
+                </ol>
+                -->
 
                 <hr>
 
@@ -412,18 +450,13 @@
 
                 </form>
 
-
-
-
             </div>
         </div>
 
 
     </div>
-
     <footer>
-        <div class="container-fluid p-3 bg-primary text-white mt-5">
-
+        <div id="fun2" class="container-fluid p-3 bg-primary text-white mt-5">
           <div class="row">
             <div class="col-sm-4">
                <h3>A simple UI</h3>
@@ -440,14 +473,11 @@
             <div class="col-sm-4">
               <h3>Who? Why?</h3>
               <p>The guy on this site: <a class="text-white" href="https://tobiasweise.dev">tobiasweise.dev</a></p>     
-              <p>For fun and learning...</p>
-              <p>...and maybe getting a job that employs the used skills.</p>
+              <p>For fun and learning.</p>
             </div>
           </div>
-
         </div>
     </footer>
-
     <script src="main.js"></script>
 </body>
 </html>

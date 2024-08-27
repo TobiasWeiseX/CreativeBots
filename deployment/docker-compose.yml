@@ -18,7 +18,6 @@ services:
 
   minio:
     container_name: ${APP_PREFIX}_minio
-    #image: docker.io/bitnami/minio #:2022
     image: minio/minio
     ports:
       - "29000:9000"
@@ -36,7 +35,6 @@ services:
   elasticsearch:
     container_name: ${APP_PREFIX}_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    #image: opensearchproject/opensearch
     restart: always
     mem_limit: 4024m
     ports:
@@ -48,9 +46,6 @@ services:
       - xpack.security.enabled=false
       - xpack.security.http.ssl.enabled=false
 
-      #- OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}    # Sets the demo admin user password when using demo configuration, required for OpenSearch 2.12 and later
-      #- "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # Set min and max JVM heap sizes to at least 50% of system RAM
-      #- ES_JAVA_OPTS="-Xms2g -Xmx2g"
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ulimits:
@@ -76,22 +71,22 @@ services:
       - llm_network
     #command: "ollama pull llama2"
 
-  ollama-webui:
-    container_name: ${APP_PREFIX}_ollama-webui
-    image: ghcr.io/ollama-webui/ollama-webui:main
-    volumes:
-      - ../ollama/ollama-webui:/app/backend/data
-    depends_on:
-      - ollama
-    ports:
-      - 8888:8080
-    environment:
-      - "/ollama/api=http://ollama:11434/api"
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    restart: unless-stopped
-    networks:
-      - llm_network
+  #ollama-webui:
+  #  container_name: ${APP_PREFIX}_ollama-webui
+  #  image: ghcr.io/ollama-webui/ollama-webui:main
+  #  volumes:
+  #    - ../ollama/ollama-webui:/app/backend/data
+  #  depends_on:
+  #    - ollama
+  #  ports:
+  #    - 8888:8080
+  #  environment:
+  #    - "/ollama/api=http://ollama:11434/api"
+  #  extra_hosts:
+  #   - host.docker.internal:host-gateway
+  #  restart: unless-stopped
+  #  networks:
+  #    - llm_network
 
   #frontend:
   #  container_name: ${APP_PREFIX}_frontend
