@@ -7,10 +7,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 #from selenium.webdriver.chrome.options import Options
-
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.firefox.service import Service as FirefoxService
-
 
 from tempfile import mkdtemp
 from time import sleep

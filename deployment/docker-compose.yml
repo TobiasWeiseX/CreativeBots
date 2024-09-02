@@ -70,6 +70,11 @@ services:
     networks:
       - llm_network
     #command: "ollama pull llama2"
+    devices:
+      #- /dev/dri/renderD128:/dev/dri/renderD128
+      #- /dev/fdk
+      - /dev/dri
+
 
   #ollama-webui:
   #  container_name: ${APP_PREFIX}_ollama-webui

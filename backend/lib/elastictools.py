@@ -67,19 +67,11 @@ def get_type_schema():
 
 
 def wait_for_elasticsearch():
-    #TODO: find a clean way to wait without exceptions!
-    #Wait for elasticsearch to start up!
-    #elastic_url = os.getenv("ELASTIC_URI")
-    #assert elastic_url
     i = 1
     while True:
         try:
-            #client = Elasticsearch(hosts=elastic_url)
             client = connections.get_connection()
             client.indices.get_alias(index="*")
-            #connections.create_connection(hosts=app.config['elastic_uri'])
-            #connections.get_connection().cluster.health(wait_for_status='yellow')
-            #init_indicies()
             print("Elasticsearch found! Run Flask-app!", flush=True)
             return
         except ConnectionError:

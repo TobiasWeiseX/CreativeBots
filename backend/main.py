@@ -1,117 +1,149 @@
+
+
+"""
+OpenAPI access via http://localhost:5000/openapi/ on local docker-compose deployment
+"""
+
+#------std lib modules:-------
+import os, sys, json, time
+import os.path
+from typing import Any, Tuple, List, Dict, Any, Callable, Optional
+from datetime import datetime, date
+import logging
+from functools import wraps
+
+#-------ext libs--------------
+
+from elasticsearch_dsl import connections
+
+from pydantic import BaseModel, Field
+import jwt as pyjwt
+
+import asyncio
+
+#----------home grown--------------
+from lib.funcs import group_by
+from lib.elastictools import get_by_id, wait_for_elasticsearch
+from lib.models import init_indicies, Chatbot, User, Text
+from lib.chatbot import ask_bot, ask_bot2, train_text, download_llm
+from lib.speech import text_to_speech
+from lib.mail import send_mail
+from lib.user import hash_password, create_user, create_default_users
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi_socketio import SocketManager
+
 from jinja2 import Environment, FileSystemLoader
-from pydantic import BaseModel
-
-from neo4j import GraphDatabase
-
-import os, sys
-from multiprocessing import Pool
-from bs4 import BeautifulSoup
-import requests
 
 
-from webbot import * #Bot, innerHTML
-from xing import *
 
 
-env = Environment(loader=FileSystemLoader('templates'))
+BOT_ROOT_PATH = os.getenv("BOT_ROOT_PATH")
+assert BOT_ROOT_PATH
+
+ollama_url = os.getenv("OLLAMA_URI")
+assert ollama_url
+
+elastic_url = os.getenv("ELASTIC_URI")
+assert elastic_url
+
+jwt_secret = os.getenv("SECRET")
+assert jwt_secret
+
+
+
 app = FastAPI()
+socket_manager = SocketManager(app=app)
+
+
+
+@app.sio.on('connect')
+async def sockcon(sid, data):
+    """
+    put every connection into it's own room
+    to avoid broadcasting messages
+    answer in callback only to room with sid
+    """
+    room = request.sid + request.remote_addr
+    join_room(room)
+    await app.sio.emit('backend response', {'msg': f'Connected to room {room} !', "room": room}) # looks like iOS needs an answer
+
+
+
+@app.sio.on('client message')
+async def handle_message(sid, message):
+
+    #try:
+    room = message["room"]
+    question = message["question"]
+    system_prompt = message["system_prompt"]
+    bot_id = message["bot_id"]
+
+    start = datetime.now().timestamp()
+    d = ask_bot2(system_prompt + " " + question, bot_id)
+
+    def get_scores(*args):
+        score_docs = d["get_score_docs"]()
+        return score_docs
+
+
+    def do_streaming(*args):
+        start_stream = datetime.now().timestamp()
+        for chunk in d["answer_generator"]():
+            socket.emit('backend token', {'data': chunk, "done": False}, to=room)
+        stream_duration = round(datetime.now().timestamp() - start_stream, 2)
+        print("Stream duration: ", stream_duration, flush=True)
+
+
+
+    [score_docs, _] = await asyncio.gather(
+        asyncio.to_thread(get_scores, 1,2,3),
+        asyncio.to_thread(do_streaming, 1,2,3)
+    )
+
+
+    await app.sio.emit.emit('backend token', {
+        'done': True,
+        "score_docs": score_docs
+    }, to=room)
+
+    duration = round(datetime.now().timestamp() - start, 2)
+    print("Total duration: ", duration, flush=True)
+
+
+
+
+
+#@app.sio.on('join')
+#async def handle_join(sid, *args, **kwargs):
+#    await app.sio.emit('lobby', 'User joined')
+
+
+#@sm.on('leave')
+#async def handle_leave(sid, *args, **kwargs):
+#    await sm.emit('lobby', 'User left')
+
+
+
+
+
+
+
+
 
 class JobSearch(BaseModel):
     location: str
     language: str
 
 
-
-def xing_job_search(location: str, radius: int) -> list:
-    with Bot() as bot:
-        vars_ = {
-            "page": 1,
-            "filter.industry%5B%5D": 90000,
-            "filter.type%5B%5D": "FULL_TIME",
-            "filter.level%5B%5D": 2,
-            "location": location,
-            "radius": radius
-        }
-        start_url = "https://www.xing.com/jobs/search?" + "&".join([k + "=" + str(v) for k, v in vars_.items()])
-
-
-        def kill_cookie_questions():
-            bot.click_id("consent-accept-button")
-
-
-        def next_page():
-            nav = bot.get_elements_by_tag_name("nav")[1]
-            next_site_link = get_elements_by_tag_name(nav, "a")[-1]
-            bot.click(next_site_link)
-
-        def get_nr_pages():
-            nav = bot.get_elements_by_tag_name("nav")[1]
-            return int(get_elements_by_tag_name(nav, "a")[-2].text)
-
-        def get_items():
-            rs = []
-            for article in bot.get_elements_by_tag_name("article"):
-                rs.append( get_children(article)[0].get_attribute("href") )
-            return rs
-
-        return collect_pagination_items(bot, start_url, next_page, get_nr_pages, get_items, kill_cookie_questions)
-
-
-
-
-
-"""
-pwd = "neo4j2"
-proto = "bolt"
-host = "192.168.99.101"
-
-driver = GraphDatabase.driver("%s://%s:7687" % (proto, host), auth=("neo4j", pwd), encrypted=False)
-
-def add_friend(tx, name, friend_name):
-    tx.run("MERGE (a:Person {name: $name}) "
-           "MERGE (a)-[:KNOWS]->(friend:Person {name: $friend_name})",
-           name=name, friend_name=friend_name)
-
-def print_friends(tx, name):
-    for record in tx.run("MATCH (a:Person)-[:KNOWS]->(friend) WHERE a.name = $name "
-                         "RETURN friend.name ORDER BY friend.name", name=name):
-        print(record["friend.name"])
-
-with driver.session() as session:
-    session.write_transaction(add_friend, "Arthur", "Guinevere")
-    session.write_transaction(add_friend, "Arthur", "Lancelot")
-    session.write_transaction(add_friend, "Arthur", "Merlin")
-    session.read_transaction(print_friends, "Arthur")
-
-driver.close()
-"""
-
-
 @app.post("/search")
 def job_search(js: JobSearch):
-
 
     #https://berlinstartupjobs.com/?s=python&page=3
 
     location = "Berlin"
     radius = 50
-
-
-    with Bot() as bot:
-        vars_ = {
-            "page": 1,
-            "filter.industry%5B%5D": 90000,
-            "filter.type%5B%5D": "FULL_TIME",
-            "filter.level%5B%5D": 2,
-            "location": location,
-            "radius": radius
-        }
-        start_url = "https://www.xing.com/jobs/search?" + "&".join([k + "=" + str(v) for k, v in vars_.items()])
-
-        bot.set_url(start_url)
-        return bot.get_page_content()
 
 
 

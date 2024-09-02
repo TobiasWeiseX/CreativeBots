@@ -6,17 +6,16 @@ OpenAPI access via http://localhost:5000/openapi/ on local docker-compose deploy
 #------std lib modules:-------
 import os, sys, json, time
 import os.path
-from typing import Any, Tuple, List, Dict, Any, Callable, Optional
+from typing import Any, Tuple, List, Dict, Any, Callable, Optional, Union
 from datetime import datetime, date
-#from collections import namedtuple
-import hashlib, traceback, logging
+import logging
 from functools import wraps
-import base64
 
 #-------ext libs--------------
 
-from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
-from elasticsearch_dsl import Search, A, Document, Date, Integer, Keyword, Float, Long, Text, connections
+#from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
+#from elasticsearch_dsl import A, Document, Date, Integer, Keyword, Float, Long, Text, connections
+from elasticsearch_dsl import connections
 
 from pydantic import BaseModel, Field
 import jwt as pyjwt
@@ -172,10 +171,10 @@ def sockcon(data):
 
 
 class SocketMessage(BaseModel):
-    room: str = Field(None, description="Status Code")
     question: str = Field(None, description="Status Code")
     system_prompt: str = Field(None, description="Status Code")
     bot_id: str = Field(None, description="Status Code")
+    room: Union[str, None] # = Field(None, description="Status Code")
 
 
 #TODO: pydantic message type validation

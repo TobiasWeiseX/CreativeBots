@@ -182,6 +182,8 @@
 
             <!-- Buttons to Open the Modal -->
             <button id="register_btn" type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#registerModal">Register</button>
+            <br>
+            <br>
             <button id="login_btn" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal">Login</button>
             <button id="logout_btn" type="button" class="btn btn-danger text-white">Logout</button>
 
@@ -270,11 +272,13 @@
                     </datalist> 
                     <button id="submit_btn" class="btn btn-success" type="button">Send</button>
                 </div>
+                <div class="input-group">
+                  <!-- Button to open the offcanvas sidebar -->
+                  <button class="btn btn-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#demo">
+                  Settings...
+                  </button> 
+                </div>
 
-                <!-- Button to open the offcanvas sidebar -->
-                <button class="btn btn-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#demo">
-                Settings...
-                </button> 
 
             </div>
             <div class="tab-pane container fade" id="create_bot_tab">
