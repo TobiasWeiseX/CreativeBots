@@ -69,7 +69,6 @@ services:
       - ../ollama/ollama:/root/.ollama
     networks:
       - llm_network
-    #command: "ollama pull llama2"
     devices:
       #- /dev/dri/renderD128:/dev/dri/renderD128
       #- /dev/fdk
@@ -116,6 +115,10 @@ services:
       - OLLAMA_URI=http://ollama:11434
 
     build: ../backend
+    #build:
+    #  context: ../backend
+    #  dockerfile: ../backend/Deb_Dockerfile
+
     networks:
       - llm_network
     depends_on:

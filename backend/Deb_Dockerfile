@@ -1,0 +1,89 @@
+#FROM python:3.12-bookworm
+#FROM python:3.12-bullseye
+FROM python:3.10-bullseye
+ARG DEBIAN_FRONTEND=noninteractive
+
+# https://blog.moubou.com/2023/11/install-amd-rocm-on-debian-bookworm/ 
+# https://blog.moubou.com/2024/05/install-amd-rocm-6-on-debian-stable-bookworm/
+
+RUN apt-get update
+
+#on debian:
+RUN apt-get install -y firefox-esr
+RUN apt-get install -y ffmpeg espeak flite
+
+
+#RUN apt-get install -y libmpdec3
+RUN apt-get install -y libmpdec-dev 
+
+
+
+#ARG MIRROR_URL="https://mirror.5i.fi/debian2/pool/main/p/python3.10/"
+
+#ROCm only supports Python 3.10, unfortunately this is no longer available in Debian Bookworm. However python3.10 can be installed from Debian Sid.
+
+#RUN wget ${MIRROR_URL}/libpython3.10-minimal_3.10.13-1_amd64.deb  
+#RUN dpkg -i            libpython3.10-minimal_3.10.13-1_amd64.deb  
+
+#RUN wget ${MIRROR_URL}/libpython3.10-stdlib_3.10.13-1_amd64.deb
+#RUN dpkg -i            libpython3.10-stdlib_3.10.13-1_amd64.deb
+
+#RUN wget ${MIRROR_URL}/python3.10_3.10.13-1_amd64.deb
+#RUN dpkg -i            python3.10_3.10.13-1_amd64.deb
+
+
+
+
+RUN wget https://repo.radeon.com/amdgpu-install/6.1.1/ubuntu/jammy/amdgpu-install_6.1.60101-1_all.deb
+RUN apt -y install ./amdgpu-install_6.1.60101-1_all.deb
+RUN amdgpu-install --usecase=rocm
+
+
+
+# Debian 12 "Bookworm"
+#RUN echo "deb http://deb.debian.org/debian/ bookworm main contrib non-free-firmware" > /etc/apt/sources.list
+
+#RUN apt-add-repository contrib
+#RUN apt-add-repository non-free
+#RUN apt update -y
+#RUN apt-get -y install firmware-amd-graphics libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers xserver-xorg-video-all
+
+
+#install "apt-add-repository" command:
+#RUN apt-get -y install software-properties-common dirmngr apt-transport-https lsb-release ca-certificates
+#RUN apt-add-repository -r ppa:graphics-drivers/ppa
+#RUN add-apt-repository ppa:oibaf/graphics-drivers
+
+#RUN apt install nvidia-driver -y
+#RUN apt-get install firmware-amd-graphics libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers xserver-xorg-video-all -y
+
+#RUN apt-get update -y --allow-unauthenticated
+#RUN apt-get upgrade -y --allow-unauthenticated
+RUN apt-get autoremove -y
+RUN apt-get autoclean -y
+
+#RUN curl https://ollama.ai/install.sh | sh
+#RUN ollama run llama2
+WORKDIR /code
+
+COPY requirements.txt /code/requirements.txt
+#RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
+
+RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
+RUN pip3 freeze > current_requirements.txt
+
+COPY . .
+
+ENTRYPOINT ["python3", "/code/app.py"]
+
+#gunicorn -w 4 -b 0.0.0.0 'hello:create_app()'
+#ENTRYPOINT ["gunicorn", "-w", "1", "-b", "0.0.0.0", "app:create_app()"]
+#ENTRYPOINT ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "app:create_app()"]
+#gunicorn app:app --worker-class eventlet -w 1 --bind 0.0.0.0:5000 --reload
+
+
+#ENTRYPOINT ["fastapi", "run", "main.py", "--port", "8000"]
+
+#ENTRYPOINT ["uvicorn", "main:app", "--port", "8000", "--host", "0.0.0.0"]
+
+
