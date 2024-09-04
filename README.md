@@ -1,5 +1,11 @@
 # Creative Bots
 
+* Disclaimer: Very much alpha software, biased to my own deployment needs
+* License: GPL3
+
+* Home repo: https://git.tobiasweise.dev/Tobias/CreativeBots
+* Mirror: https://github.com/TobiasWeiseX/CreativeBots
+
 
 ## Configuration
 * create a .env file in the deployment directory based on sample.env
