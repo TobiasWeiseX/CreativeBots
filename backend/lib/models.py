@@ -1,7 +1,6 @@
 import os
 from elasticsearch_dsl import Document, InnerDoc, Nested, Date, Integer, Keyword, Float, Long, Text, connections, Object, Boolean
 
-
 class User(Document):
     creation_date = Date()
     email = Keyword()
@@ -27,7 +26,6 @@ class User(Document):
 
     def save(self, ** kwargs):
         return super(User, self).save(**kwargs)
-
 
 
 class Chatbot(Document):
@@ -63,11 +61,6 @@ class Chatbot(Document):
         return super(Chatbot, self).save(**kwargs)
 
 
-
-
-
-
-
 class Text(Document):
     creation_date = Date()
     creator_id = Keyword()
@@ -84,62 +77,101 @@ class Text(Document):
         return super(Text, self).save(**kwargs)
 
 
-
-#======= Query Log ===========
-
-
-class Sources(InnerDoc):
-    score = Float()
-    #sourceFileId = Text()
-    sourceType = Text()
-    tags = Text()
-
-    #new fields
-    sourceFileId = Keyword()
-    filename = Keyword()
-    url = Keyword()
-    txt_id = Keyword()
-    page = Integer()
-
-
-
-class QueryLog(Document):
-    answer = Text()
-    question = Text()
-
-    chatbotid = Keyword()
-    durasecs = Float()
-    #inCt = Float()
-    inToks = Long()
-    llm = Text()
-    #outCt = Float()
-    outToks = Long()
-
-    #queryid = Keyword()
-    #rating = Long()
-    #reason = Text()
-    #reasontags = Text()
-    session = Keyword()
-
-    sources = Object(Sources)
-    temperature = Float()
-    #totalCt = Float()
-
-    timest = Date() #timestamp
-    date = Date() #iso date
+class Question(Document):
+    question = Text(index=False, required=True)
+    md5 = Keyword()
 
     class Index:
-        name = 'query_log'
+        name = 'question'
         settings = {
             "number_of_shards": 1,
         }
 
     def save(self, ** kwargs):
-        return super(QueryLog, self).save(**kwargs)
+        return super(Question, self).save(**kwargs)
 
 
+class Answer(Document):
+    question_id = Keyword()
+    answer = Text(index=False, required=True)
+    md5 = Keyword()
+
+    class Index:
+        name = 'answer'
+        settings = {
+            "number_of_shards": 1,
+        }
+
+    def save(self, ** kwargs):
+        return super(Answer, self).save(**kwargs)
+
+
+class LogEntry(Document):
+    message = Text(index=False, required=True)
+    level = Keyword() #Integer(required=True)
+    creation_time = Date()
+
+
+    name = Keyword()
+
+    # 'args': ('GET /socket.io/?EIO=4&transport=websocket&sid=MtyTmZQs5IA6DnvhAAAA HTTP/1.1', '200', '-'), 
+
+    pathname = Keyword()
+    #  'pathname': '/usr/local/lib/python3.12/dist-packages/werkzeug/_internal.py', 
+
+    filename = Keyword()
+    # 'filename': '_internal.py', 
+
+    module = Keyword()
+    # 'module': '_internal',
+
+    lineno = Integer(required=True)
+    # 'lineno': 97, 
+
+    funcName = Keyword()
+    # 'funcName': '_log',
+
+
+    #  'created': 1725709403.1972203,
+    #  'msecs': 197.0, 
+
+    threadName = Keyword()
+    # 'threadName': 'Thread-15 (process_request_thread)',
+
+    processName = Keyword()
+    #  'processName': 'MainProcess',
+
+
+
+
+
+    class Index:
+        name = 'logentry'
+        settings = {
+            "number_of_shards": 1,
+        }
+
+    def save(self, ** kwargs):
+        return super(LogEntry, self).save(**kwargs)
+
+
+#======= Query Log ===========
+
+
+#class Sources(InnerDoc):
+#score = Float()
+#tags = Text()
+#filename = Keyword()
+#page = Integer()
+
+
+#----------------------------------------------
 
 def init_indicies():
-    # create the mappings in elasticsearch
-    for Index in [QueryLog, Chatbot, User, Text]:
+    """
+    Create the mappings in elasticsearch
+    """
+    for Index in [LogEntry, Question, Answer, Chatbot, User, Text]:
         Index.init()
+
+

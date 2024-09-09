@@ -32,6 +32,31 @@ services:
       - MINIO_DEFAULT_BUCKETS=defaultbucket
     command: server --console-address ":29001" /data
 
+  neo4j:
+    container_name: ${APP_PREFIX}_neo4j
+    image: neo4j
+    #image: neo4j:3.5
+    #image: neo4j:4.1
+    restart: unless-stopped
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - ./conf:/conf
+      - ./data:/data
+      - ./import:/import
+      - ./logs:/logs
+      - ./plugins:/plugins
+    environment: 
+      - NEO4J_AUTH=neo4j/your_password
+
+      # Raise memory limits
+      - NEO4J_server_memory_pagecache_size=512M
+      - NEO4J_server_memory_heap_max__size=512M
+
+      - dbms.usage_report.enabled=false
+
+
   elasticsearch:
     container_name: ${APP_PREFIX}_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -64,6 +89,10 @@ services:
     restart: always
     ports:
       - "11434:11434"
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=4
+
     volumes:
       - ..:/code
       - ../ollama/ollama:/root/.ollama
@@ -73,6 +102,12 @@ services:
       #- /dev/dri/renderD128:/dev/dri/renderD128
       #- /dev/fdk
       - /dev/dri
+
+
+
+
+
+
 
 
   #ollama-webui:

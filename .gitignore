@@ -1,6 +1,10 @@
 backend/__pycache__/
 ollama
-deployment/ollama
 *.env
 deployment/*.env
+deployment/ollama
+# neo4j
+deployment/data
+deployment/logs
+
 

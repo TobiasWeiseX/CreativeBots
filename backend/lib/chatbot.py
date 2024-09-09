@@ -87,26 +87,11 @@ def train_text(bot_id, text):
 
 
 
-#TODO add history
+
 
 def ask_bot(question, bot_id):
-    bot = Chatbot.get(id=bot_id)
-    llm = Ollama(
-        model=bot.llm_model,
-        base_url=ollama_url
-    )
-    query = bot.system_prompt + " " + question
-    for chunk in llm.stream(query):
-        yield chunk
-
-
-
-#connections.get_connection()
-#if es.indices.exists(index="index"):
-
-def ask_bot2(question, bot_id):
     """
-    Asks a chatbot
+    Asks a chatbot using RAG resources
     """
 
     bot = Chatbot.get(id=bot_id)
@@ -158,7 +143,6 @@ def ask_bot2(question, bot_id):
                 #print(doc, flush=True)
                 xs.append([score, dict(doc)])
             return xs
-
 
         return {
             "answer_generator": gen_func,
