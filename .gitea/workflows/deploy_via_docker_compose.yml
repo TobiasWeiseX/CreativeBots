@@ -20,11 +20,7 @@ jobs:
             docker-compose down
             git pull
             echo "============ Git pull finished! ========="
-
-
-            echo '${{ secrets.ENV }}' > .env
-
-
+            echo '${{ vars.ENV }}' > .env
             echo "============ Env creation finished! ========="
 
 
