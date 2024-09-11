@@ -21,10 +21,10 @@ jobs:
             git pull
             echo "============ Git pull finished! ========="
             echo '${{ vars.ENV }}' > .env
-            echo '\n' >> .env
-            echo '${{ secrets.CB_EMAIL_SMTP }}\n' >> .env
-            echo '${{ secrets.CB_EMAIL_ADDR }}\n' >> .env
-            echo '${{ secrets.CB_EMAIL_PWD }}\n' >> .env
+
+            echo '${{ secrets.CB_EMAIL_SMTP }}' >> .env
+            echo '${{ secrets.CB_EMAIL_ADDR }}' >> .env
+            echo '${{ secrets.CB_EMAIL_PWD }}' >> .env
             echo "============ Env creation finished! ========="
 
 
