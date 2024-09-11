@@ -45,6 +45,9 @@ assert elastic_url
 jwt_secret = os.getenv("SECRET")
 assert jwt_secret
 
+app_domain = os.getenv("APP_DOMAIN")
+assert app_domain
+
 
 
 class MeasureTime:
@@ -371,7 +374,7 @@ def create_app():
 
             Please click on the following link to verify your e-mail:
 
-            <a href="http://127.0.0.1:5000/verify?id={user.password_hash}">Click here!</a>
+            <a href="{app_domain}/verify?id={user.password_hash}">Click here!</a>
 
             """
 

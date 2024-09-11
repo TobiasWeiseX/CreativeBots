@@ -4,10 +4,7 @@ from elasticsearch_dsl import Document, InnerDoc, Nested, Date, Integer, Keyword
 class User(Document):
     creation_date = Date()
     email = Keyword()
-    #password_hash = Text(index=False)
     password_hash = Keyword()
-    #password_hash = Text(index=True)
-
     role = Keyword()
 
     #salt = Text(index=False)
@@ -39,7 +36,6 @@ class Chatbot(Document):
     description = Text()
     systemPrompt = Text(index=False)
 
-    #slug = Keyword()
     files = Nested()
     text = Text()
     links = Nested()
