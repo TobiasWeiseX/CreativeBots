@@ -20,7 +20,11 @@ jobs:
             docker-compose down
             git pull
             echo "============ Git pull finished! ========="
-            echo '${{ secrets.ENV }}' > .env
+            echo '${{ vars.ENV }}' > .env
+
+            echo '${{ secrets.CB_EMAIL_SMTP }}' >> .env
+            echo '${{ secrets.CB_EMAIL_ADDR }}' >> .env
+            echo '${{ secrets.CB_EMAIL_PWD }}' >> .env
             echo "============ Env creation finished! ========="
 
 
