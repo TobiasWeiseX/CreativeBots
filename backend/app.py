@@ -19,7 +19,6 @@ from flask import Flask, send_from_directory, send_file, Response, request, json
 from flask_openapi3 import Info, Tag, OpenAPI, Server #FileStorage
 from flask_socketio import SocketIO, join_room, leave_room, rooms, send
 from werkzeug.utils import secure_filename
-
 import asyncio
 import logging
 
@@ -133,6 +132,9 @@ def uses_jwt(logger=None, required=True):
 
 def create_app():
 
+    app_name = "Creative Bots"
+
+
     # JWT Bearer Sample
     jwt = {
         "type": "http",
@@ -144,7 +146,7 @@ def create_app():
 
 
     info = Info(
-        title="CreativeBots-API",
+        title=app_name + " API",
         version=__version__,
         summary="The REST-API to manage bots, users and more!",
         description=""
@@ -192,13 +194,10 @@ def create_app():
 
     @socket.on('client message')
     def handle_message(message):
-
         SocketMessage.model_validate(message)
 
         logger.info("Starting stream")
 
-
-        #try:
         room = message["room"]
         question = message["question"]
         system_prompt = message["system_prompt"]
@@ -305,12 +304,20 @@ def create_app():
 
             case [user]:
                 if user["password_hash"] == hash_password(form.password + form.email):
-                    token = pyjwt.encode({"email": form.email}, jwt_secret, algorithm="HS256")
-                    #logger.info(token)
-                    return jsonify({
-                        'status': 'success',
-                        'jwt': token
-                    })
+                    if not user["isEmailVerified"]:
+                        msg = "E-Mail unverified!"
+                        logger.error(msg)
+                        return jsonify({
+                            'status': 'error',
+                            'message': msg
+                        }), 400
+                    else:
+                        token = pyjwt.encode({"email": form.email}, jwt_secret, algorithm="HS256")
+                        #logger.info(token)
+                        return jsonify({
+                            'status': 'success',
+                            'jwt': token
+                        })
                 else:
                     msg = "Invalid password!"
                     logger.error(msg)
@@ -341,12 +348,15 @@ def create_app():
 
 
         if User.get(id=form.email, ignore=404) is not None:
+            msg = "User with that e-mail address already exists!"
+            logger.error(msg)
             return jsonify({
                 'status': 'error',
-                "message": "User with that e-mail address already exists!"
+                "message": msg
             })
 
         else:
+            logger.info("Try creating user...!")
             user = User(meta={'id': form.email})
             user.creation_date = datetime.now()
             user.email = form.email
@@ -354,21 +364,23 @@ def create_app():
             user.role = "User"
             user.isEmailVerified = False
             user.save()
+            logger.info("User created!")
 
-            msg = """
+            msg = f"""
             <h1>Verify E-Mail</h1>
-
-            Hi!
 
             Please click on the following link to verify your e-mail:
 
-
-            <a href="http://127.0.0.1:5000/">Click here!</a>
+            <a href="http://127.0.0.1:5000/verify?id={user.password_hash}">Click here!</a>
 
             """
 
-            send_mail(user.email, "User registration @ Creative Bots", "Creative Bots", msg)
-
+            send_mail(
+                target_mail=user.email,
+                subject="User registration @ " + app_name,
+                msg=msg
+            )
+            logger.info("Mail send!")
             return jsonify({
                 'status': 'success'
             })
@@ -599,9 +611,6 @@ def create_app():
             "score_docs": xs
         })
 
-
-
-
     #-----------------Embedding----------------------
 
     class TrainTextRequest(BaseModel):
@@ -659,15 +668,41 @@ def create_app():
 
         d = {}
         d["module_versions"] = get_module_versions()
-        d["OLLAMA_NUM_PARALLEL"] = os.getenv("OLLAMA_NUM_PARALLEL")
-        d["OLLAMA_MAX_LOADED_MODELS"] = os.getenv("OLLAMA_MAX_LOADED_MODELS")
+        #d["OLLAMA_NUM_PARALLEL"] = os.getenv("OLLAMA_NUM_PARALLEL")
+        #d["OLLAMA_MAX_LOADED_MODELS"] = os.getenv("OLLAMA_MAX_LOADED_MODELS")
         d["cpus"] = multiprocessing.cpu_count()
 
         #return "CPUs: " + str(cpus) + "<br>" + json.dumps(get_module_versions(), indent=4).replace("\n", "<br>")
-
         return json.dumps(d, indent=4).replace("\n", "<br>")
 
 
+    @app.route("/verify", methods=['GET'])
+    def verify_email():
+        x = request.args.get('id')
+        s = User.search()
+        s = s.filter('term', isEmailVerified=False).query('match', password_hash=x)
+        results = s.execute()
+
+        # when you execute the search the results are wrapped in your document class (Post)
+        for user in results:
+            #print(post.meta.score, post.title)
+            if user.password_hash == x:
+                user.isEmailVerified = True
+                user.save()
+                return "E-Mail verified!"
+
+
+        return "Verrification Error!"
+        """
+        match get_by_id(index="user", id_field_name="password_hash", id_value=x):
+            case [d]:
+                #user.isEmailVerified = True
+                #user.save()
+                return "E-Mail verified!"
+
+            case _:
+                return "Verrification Error!"
+        """
 
 
     @app.route('/<path:path>') #generische Route (auch Unterordner)

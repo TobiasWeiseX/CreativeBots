@@ -19,6 +19,7 @@ services:
   minio:
     container_name: ${APP_PREFIX}_minio
     image: minio/minio
+    restart: always
     ports:
       - "29000:9000"
       - "29001:9001"
@@ -37,7 +38,8 @@ services:
     image: neo4j
     #image: neo4j:3.5
     #image: neo4j:4.1
-    restart: unless-stopped
+    #restart: unless-stopped
+    restart: always
     ports:
       - 7474:7474
       - 7687:7687
@@ -102,12 +104,6 @@ services:
       #- /dev/dri/renderD128:/dev/dri/renderD128
       #- /dev/fdk
       - /dev/dri
-
-
-
-
-
-
 
 
   #ollama-webui:

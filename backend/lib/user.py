@@ -2,6 +2,7 @@
 All around managing users
 """
 import os, json, hashlib, traceback, logging
+from datetime import datetime, date
 from elasticsearch import NotFoundError, Elasticsearch # for normal read/write without vectors
 
 from lib.models import User
@@ -14,7 +15,6 @@ assert elastic_url
 
 def hash_password(s: str) -> str:
     return hashlib.md5(s.encode('utf-8')).hexdigest()
-
 
 def create_user(email, password, role="user", verified=False):
     user = User(meta={'id': email}, email=email, password_hash=hash_password(password + email), role=role)

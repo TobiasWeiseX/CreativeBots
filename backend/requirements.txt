@@ -3,6 +3,7 @@ webdriver_manager
 requests==2.32.3
 selenium==4.23.1
 bs4
+jinja2
 
 elasticsearch==8.15.0
 elasticsearch-dsl==8.15.1

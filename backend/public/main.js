@@ -684,6 +684,7 @@ window.onload = async ()=>{
 
         }
         catch(e){
+            console.error(e);
             console.error("Registration failed!");
         }
     };
