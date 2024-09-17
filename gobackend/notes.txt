@@ -1,0 +1,13 @@
+
+
+run the app:
+
+go run .
+
+
+
+
+
+
+
+
