@@ -5,7 +5,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
 RUN apt-get install -y python3 python3-pip
 RUN apt-get install -y firefox curl ffmpeg espeak flite
-
+RUN apt-get install -y tesseract-ocr
 
 #install "apt-add-repository" command:
 RUN apt-get -y install software-properties-common dirmngr apt-transport-https lsb-release ca-certificates

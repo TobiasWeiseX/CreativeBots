@@ -7,4 +7,7 @@ deployment/ollama
 deployment/data
 deployment/logs
 
+#next.js
+frontend/node_modules
+frontend/.next
 

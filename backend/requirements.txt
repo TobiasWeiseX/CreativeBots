@@ -16,11 +16,14 @@ langchain-elasticsearch==0.2.2
 
 pydantic==2.8.2
 
+#FASTAPI
 uvicorn
 fastapi==0.112.2
-fastapi-socketio
+#fastapi-socketio
+websockets
+chainlit
 
-
+#FLASK
 gunicorn==23.0.0
 Werkzeug==3.0.4
 flask
@@ -36,5 +39,7 @@ pyjwt
 neo4j==5.23.1
 
 pyttsx3==2.91
+
+pytesseract
 
 

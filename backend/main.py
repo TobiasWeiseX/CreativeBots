@@ -30,9 +30,10 @@ from lib.speech import text_to_speech
 from lib.mail import send_mail
 from lib.user import hash_password, create_user, create_default_users
 
-from fastapi import FastAPI
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from fastapi_socketio import SocketManager
+from chainlit.utils import mount_chainlit
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -54,7 +55,29 @@ assert jwt_secret
 
 
 app = FastAPI()
-socket_manager = SocketManager(app=app)
+
+#app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/", StaticFiles(directory="public"), name="public")
+
+
+mount_chainlit(app=app, target="my_cl_app.py", path="/chainlit")
+
+
+
+#@app.get("/")
+#async def root():
+#    return HTMLResponse(html)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
+
+
+
 
 
 
@@ -148,11 +171,7 @@ def job_search(js: JobSearch):
 
 
 
-@app.get("/")
-async def root():
-    template = env.get_template('index.twig')
-    html = template.render()
-    return HTMLResponse(html)
+
 
 
 

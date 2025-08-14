@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"net/http"
-	"os"
-	"time"
+	//"os"
+	//"time"
+	//"slices"
 
-  	jwt "github.com/appleboy/gin-jwt/v2"
+  	//jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 )
   
+
 func main() {
 
 	var inc = func(x int) int { return x + 1}
@@ -22,6 +24,11 @@ func main() {
 
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
+
+
+
+
+		
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
